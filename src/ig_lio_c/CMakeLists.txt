@@ -72,6 +72,11 @@ include_directories(
 set(sources
   src/ig_lio_c/ieskf/ieskf.cpp
   src/ig_lio_c/ikd_tree/ikd_tree.cpp
+  src/ig_lio_c/localizer/icp_localizer.cpp
+  src/ig_lio_c/map_builder/imu_processor.cpp
+  src/ig_lio_c/map_builder/iglio_builder.cpp
+  src/ig_lio_c/voxel_map/voxel_map.cpp
+  src/ig_lio_c/commons.cpp
   src/map_builder_node.cpp
 )
 
