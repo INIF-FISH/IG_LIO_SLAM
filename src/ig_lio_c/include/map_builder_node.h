@@ -222,6 +222,11 @@ namespace IG_LIO
             }
         }
 
+        void stop()
+        {
+            terminate_flag = true;
+        }
+
     private:
         std::shared_ptr<SharedData> shared_data_;
 
@@ -414,17 +419,18 @@ namespace IG_LIO
         MapBuilderNode(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
         ~MapBuilderNode();
 
+        void run();
+        void stop();
+
     private:
         void param_respond();
         void initSubscribers();
         void initPublishers();
         void start();
-        void run();
         void addKeyPose();
         void publishOdom(const nav_msgs::msg::Odometry &odom_to_pub);
 
     private:
-        bool terminate_flag = false;
         std::string global_frame_;
         std::string local_frame_;
         std::string body_frame_;
@@ -440,11 +446,11 @@ namespace IG_LIO
         std::shared_ptr<rclcpp::Rate> loop_rate_;
         LoopClosureThread loop_closure_;
         std::shared_ptr<std::thread> loop_thread_;
-        std::shared_ptr<std::thread> front_thread_;
         std::shared_ptr<tf2_ros::TransformBroadcaster> br_;
         pcl::PCDWriter writer_;
 
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
+        rclcpp::TimerBase::SharedPtr timer_;
     };
 } // namespace IG_LIO
 

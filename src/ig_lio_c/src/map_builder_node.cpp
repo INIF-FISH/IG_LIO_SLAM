@@ -51,8 +51,10 @@ namespace IG_LIO
         lio_params_.grid_capacity = static_cast<size_t>(grid_capacity);
         this->declare_parameter<bool>("lio_builder/align_gravity", true);
         this->declare_parameter<bool>("lio_builder/extrinsic_est_en", false);
-        this->declare_parameter<std::vector<double>>("lio_builder/imu_ext_rot", std::vector<double>());
-        this->declare_parameter<std::vector<double>>("lio_builder/imu_ext_pos", std::vector<double>());
+        std::vector<double> pre_rot = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+        std::vector<double> pre_pos = {0, 0, 0};
+        this->declare_parameter<std::vector<double>>("lio_builder/imu_ext_rot", pre_rot);
+        this->declare_parameter<std::vector<double>>("lio_builder/imu_ext_pos", pre_pos);
         this->get_parameter("lio_builder/align_gravity", lio_params_.align_gravity);
         this->get_parameter("lio_builder/extrinsic_est_en", lio_params_.extrinsic_est_en);
         this->get_parameter("lio_builder/imu_ext_rot", lio_params_.imu_ext_rot);
@@ -121,57 +123,56 @@ namespace IG_LIO
         loop_closure_.setShared(shared_data_);
         loop_closure_.init();
         loop_thread_ = std::make_shared<std::thread>(std::ref(loop_closure_));
-        front_thread_ = std::make_shared<std::thread>(std::bind(&MapBuilderNode::run, this));
-        front_thread_->join();
+        timer_ = this->create_wall_timer(
+            10ms, std::bind(&MapBuilderNode::run, this));
     }
 
     void MapBuilderNode::run()
     {
-        rclcpp::Node::SharedPtr node_(this);
-        while (!terminate_flag)
-        {
-            local_rate_->sleep();
-            rclcpp::spin_some(node_);
-            if (terminate_flag)
-                break;
-            if (!measure_group_.syncPackage(imu_data_, livox_data_))
-                continue;
-            lio_builder_->mapping(measure_group_);
-            if (lio_builder_->currentStatus() == IG_LIO::Status::INITIALIZE)
-                continue;
-            current_time_ = measure_group_.lidar_time_end;
-            current_state_ = lio_builder_->currentState();
-            br_->sendTransform(eigen2Transform(shared_data_->offset_rot,
-                                               shared_data_->offset_pos,
-                                               global_frame_,
-                                               local_frame_,
-                                               current_time_));
-            br_->sendTransform(eigen2Transform(current_state_.rot,
-                                               current_state_.pos,
-                                               local_frame_,
-                                               body_frame_,
-                                               current_time_));
+        local_rate_->sleep();
+        if (!measure_group_.syncPackage(imu_data_, livox_data_))
+            return;
+        lio_builder_->mapping(measure_group_);
+        if (lio_builder_->currentStatus() == IG_LIO::Status::INITIALIZE)
+            return;
+        current_time_ = measure_group_.lidar_time_end;
+        current_state_ = lio_builder_->currentState();
+        br_->sendTransform(eigen2Transform(shared_data_->offset_rot,
+                                           shared_data_->offset_pos,
+                                           global_frame_,
+                                           local_frame_,
+                                           current_time_));
+        br_->sendTransform(eigen2Transform(current_state_.rot,
+                                           current_state_.pos,
+                                           local_frame_,
+                                           body_frame_,
+                                           current_time_));
 
-            publishOdom(eigen2Odometry(current_state_.rot,
-                                       current_state_.pos,
-                                       local_frame_,
-                                       body_frame_,
-                                       current_time_));
+        publishOdom(eigen2Odometry(current_state_.rot,
+                                   current_state_.pos,
+                                   local_frame_,
+                                   body_frame_,
+                                   current_time_));
 
-            addKeyPose();
+        addKeyPose();
 
-            // publishCloud(body_cloud_pub_,
-            //              pcl2msg(lio_builder_->cloudUndistortedBody(),
-            //                      body_frame_,
-            //                      current_time_));
-            // publishCloud(local_cloud_pub_,
-            //              pcl2msg(lio_builder_->cloudWorld(),
-            //                      local_frame_,
-            //                      current_time_));
-            // publishLocalPath();
-            // publishGlobalPath();
-            // publishLoopMark();
-        }
+        // publishCloud(body_cloud_pub_,
+        //              pcl2msg(lio_builder_->cloudUndistortedBody(),
+        //                      body_frame_,
+        //                      current_time_));
+        // publishCloud(local_cloud_pub_,
+        //              pcl2msg(lio_builder_->cloudWorld(),
+        //                      local_frame_,
+        //                      current_time_));
+        // publishLocalPath();
+        // publishGlobalPath();
+        // publishLoopMark();
+    }
+
+    void MapBuilderNode::stop()
+    {
+        loop_closure_.stop();
+        loop_thread_->join();
     }
 
     void MapBuilderNode::addKeyPose()
@@ -222,5 +223,16 @@ void signalHandler(int signum)
 int main(int argc, char **argv)
 {
     signal(SIGINT, signalHandler);
+    rclcpp::init(argc, argv);
+    auto node = std::make_shared<IG_LIO::MapBuilderNode>();
+    while (rclcpp::ok() && !terminate_flag)
+    {
+        rclcpp::spin_some(node);
+    }
+    node->stop();
+    rclcpp::shutdown();
     return 0;
 }
+
+#include "rclcpp_components/register_node_macro.hpp"
+RCLCPP_COMPONENTS_REGISTER_NODE(IG_LIO::MapBuilderNode)
