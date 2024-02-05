@@ -80,6 +80,10 @@ namespace IG_LIO
     };
 
     Eigen::Vector3d rotate2rpy(Eigen::Matrix3d &rot);
+
+    nav_msgs::msg::Odometry eigen2Odometry(const Eigen::Matrix3d &rot, const Eigen::Vector3d &pos, const std::string &frame_id, const std::string &child_frame_id, const double &timestamp);
+
+    geometry_msgs::msg::TransformStamped eigen2Transform(const Eigen::Matrix3d &rot, const Eigen::Vector3d &pos, const std::string &frame_id, const std::string &child_frame_id, const double &timestamp);
 } // namespace IG_LIO
 
 #endif // _COMMONS_H

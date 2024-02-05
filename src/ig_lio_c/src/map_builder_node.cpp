@@ -1,11 +1,226 @@
-#include <map>
-#include <mutex>
-#include <vector>
-#include <thread>
-#include <csignal>
-#include <rclcpp/rclcpp.hpp>
+#include "../include/map_builder_node.h"
+
+namespace IG_LIO
+{
+    MapBuilderNode::MapBuilderNode(const rclcpp::NodeOptions &options)
+        : Node("map_builder", options)
+    {
+        param_respond();
+        initSubscribers();
+        initPublishers();
+        start();
+    }
+
+    MapBuilderNode::~MapBuilderNode()
+    {
+    }
+
+    void MapBuilderNode::param_respond()
+    {
+        this->declare_parameter<std::string>("map_frame", "map");
+        this->declare_parameter<std::string>("local_frame", "local");
+        this->declare_parameter<std::string>("body_frame", "body");
+        this->declare_parameter<std::string>("imu_topic", "/livox/imu");
+        this->declare_parameter<std::string>("livox_topic", "/livox/lidar");
+        this->get_parameter("map_frame", global_frame_);
+        this->get_parameter("local_frame", local_frame_);
+        this->get_parameter("body_frame", body_frame_);
+        this->get_parameter("imu_topic", imu_data_.topic);
+        this->get_parameter("livox_topic", livox_data_.topic);
+        double local_rate, loop_rate;
+        this->declare_parameter<double>("local_rate", 20.0);
+        this->declare_parameter<double>("loop_rate", 1.0);
+        this->get_parameter("local_rate", local_rate);
+        this->get_parameter("loop_rate", loop_rate);
+        local_rate_ = std::make_shared<rclcpp::Rate>(local_rate);
+        loop_rate_ = std::make_shared<rclcpp::Rate>(loop_rate);
+        this->declare_parameter<double>("lio_builder/scan_resolution", 0.5);
+        this->declare_parameter<double>("lio_builder/map_resolution", 0.5);
+        this->declare_parameter<double>("lio_builder/point2plane_gain", 1000.0);
+        this->declare_parameter<double>("lio_builder/plane2plane_gain", 100.0);
+        this->get_parameter("lio_builder/scan_resolution", lio_params_.scan_resolution);
+        this->get_parameter("lio_builder/map_resolution", lio_params_.map_resolution);
+        this->get_parameter("lio_builder/point2plane_gain", lio_params_.point2plane_gain);
+        this->get_parameter("lio_builder/plane2plane_gain", lio_params_.plane2plane_gain);
+        int map_capacity, grid_capacity;
+        this->declare_parameter<int>("lio_builder/map_capacity", 5000000);
+        this->declare_parameter<int>("lio_builder/grid_capacity", 20);
+        this->get_parameter("lio_builder/map_capacity", map_capacity);
+        this->get_parameter("lio_builder/grid_capacity", grid_capacity);
+        lio_params_.map_capacity = static_cast<size_t>(map_capacity);
+        lio_params_.grid_capacity = static_cast<size_t>(grid_capacity);
+        this->declare_parameter<bool>("lio_builder/align_gravity", true);
+        this->declare_parameter<bool>("lio_builder/extrinsic_est_en", false);
+        this->declare_parameter<std::vector<double>>("lio_builder/imu_ext_rot", std::vector<double>());
+        this->declare_parameter<std::vector<double>>("lio_builder/imu_ext_pos", std::vector<double>());
+        this->get_parameter("lio_builder/align_gravity", lio_params_.align_gravity);
+        this->get_parameter("lio_builder/extrinsic_est_en", lio_params_.extrinsic_est_en);
+        this->get_parameter("lio_builder/imu_ext_rot", lio_params_.imu_ext_rot);
+        this->get_parameter("lio_builder/imu_ext_pos", lio_params_.imu_ext_pos);
+        int mode;
+        this->declare_parameter<int>("lio_builder/near_mode", 1);
+        this->get_parameter("lio_builder/near_mode", mode);
+        switch (mode)
+        {
+        case 1:
+            lio_params_.mode = IG_LIO::VoxelMap::MODE::NEARBY_1;
+            break;
+        case 2:
+            lio_params_.mode = IG_LIO::VoxelMap::MODE::NEARBY_7;
+            break;
+        case 3:
+            lio_params_.mode = IG_LIO::VoxelMap::MODE::NEARBY_19;
+            break;
+        case 4:
+            lio_params_.mode = IG_LIO::VoxelMap::MODE::NEARBY_26;
+            break;
+
+        default:
+            lio_params_.mode = IG_LIO::VoxelMap::MODE::NEARBY_1;
+            break;
+        }
+        this->declare_parameter<bool>("loop_closure/activate", true);
+        this->declare_parameter<double>("loop_closure/rad_thresh", 0.4);
+        this->declare_parameter<double>("loop_closure/dist_thresh", 2.5);
+        this->declare_parameter<double>("loop_closure/time_thresh", 30.0);
+        this->declare_parameter<double>("loop_closure/loop_pose_search_radius", 10.0);
+        this->declare_parameter<int>("loop_closure/loop_pose_index_thresh", 5);
+        this->declare_parameter<double>("loop_closure/submap_resolution", 0.2);
+        this->declare_parameter<int>("loop_closure/submap_search_num", 20);
+        this->declare_parameter<double>("loop_closure/loop_icp_thresh", 0.3);
+        this->declare_parameter<bool>("loop_closure/z_prior", false);
+        this->get_parameter("loop_closure/activate", loop_closure_.mutableParams().activate);
+        this->get_parameter("loop_closure/rad_thresh", loop_closure_.mutableParams().rad_thresh);
+        this->get_parameter("loop_closure/dist_thresh", loop_closure_.mutableParams().dist_thresh);
+        this->get_parameter("loop_closure/time_thresh", loop_closure_.mutableParams().time_thresh);
+        this->get_parameter("loop_closure/loop_pose_search_radius", loop_closure_.mutableParams().loop_pose_search_radius);
+        this->get_parameter("loop_closure/loop_pose_index_thresh", loop_closure_.mutableParams().loop_pose_index_thresh);
+        this->get_parameter("loop_closure/submap_resolution", loop_closure_.mutableParams().submap_resolution);
+        this->get_parameter("loop_closure/submap_search_num", loop_closure_.mutableParams().submap_search_num);
+        this->get_parameter("loop_closure/loop_icp_thresh", loop_closure_.mutableParams().loop_icp_thresh);
+        this->get_parameter("loop_closure/z_prior", loop_closure_.mutableParams().z_prior);
+    }
+
+    void MapBuilderNode::initSubscribers()
+    {
+    }
+    void MapBuilderNode::initPublishers()
+    {
+        rclcpp::QoS qos(1000);
+        qos.reliability();
+        qos.keep_last(1);
+        odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("slam_odom", qos);
+    }
+
+    void MapBuilderNode::start()
+    {
+        shared_data_ = std::make_shared<SharedData>();
+        this->br_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+        lio_builder_ = std::make_shared<IG_LIO::IGLIOBuilder>(lio_params_);
+        loop_closure_.setRate(loop_rate_);
+        loop_closure_.setShared(shared_data_);
+        loop_closure_.init();
+        loop_thread_ = std::make_shared<std::thread>(std::ref(loop_closure_));
+        front_thread_ = std::make_shared<std::thread>(std::bind(&MapBuilderNode::run, this));
+        front_thread_->join();
+    }
+
+    void MapBuilderNode::run()
+    {
+        rclcpp::Node::SharedPtr node_(this);
+        while (!terminate_flag)
+        {
+            local_rate_->sleep();
+            rclcpp::spin_some(node_);
+            if (terminate_flag)
+                break;
+            if (!measure_group_.syncPackage(imu_data_, livox_data_))
+                continue;
+            lio_builder_->mapping(measure_group_);
+            if (lio_builder_->currentStatus() == IG_LIO::Status::INITIALIZE)
+                continue;
+            current_time_ = measure_group_.lidar_time_end;
+            current_state_ = lio_builder_->currentState();
+            br_->sendTransform(eigen2Transform(shared_data_->offset_rot,
+                                               shared_data_->offset_pos,
+                                               global_frame_,
+                                               local_frame_,
+                                               current_time_));
+            br_->sendTransform(eigen2Transform(current_state_.rot,
+                                               current_state_.pos,
+                                               local_frame_,
+                                               body_frame_,
+                                               current_time_));
+
+            publishOdom(eigen2Odometry(current_state_.rot,
+                                       current_state_.pos,
+                                       local_frame_,
+                                       body_frame_,
+                                       current_time_));
+
+            addKeyPose();
+
+            // publishCloud(body_cloud_pub_,
+            //              pcl2msg(lio_builder_->cloudUndistortedBody(),
+            //                      body_frame_,
+            //                      current_time_));
+            // publishCloud(local_cloud_pub_,
+            //              pcl2msg(lio_builder_->cloudWorld(),
+            //                      local_frame_,
+            //                      current_time_));
+            // publishLocalPath();
+            // publishGlobalPath();
+            // publishLoopMark();
+        }
+    }
+
+    void MapBuilderNode::addKeyPose()
+    {
+        int idx = shared_data_->key_poses.size();
+        if (shared_data_->key_poses.empty())
+        {
+            std::lock_guard<std::mutex> lock(shared_data_->mutex);
+            shared_data_->key_poses.emplace_back(idx, current_time_, current_state_.rot, current_state_.pos);
+            shared_data_->key_poses.back().addOffset(shared_data_->offset_rot, shared_data_->offset_pos);
+            shared_data_->key_pose_added = true;
+            shared_data_->cloud_history.push_back(lio_builder_->cloudUndistortedBody());
+            return;
+        }
+        Pose6D &last_key_pose = shared_data_->key_poses.back();
+        Eigen::Matrix3d diff_rot = last_key_pose.local_rot.transpose() * current_state_.rot;
+        Eigen::Vector3d diff_pose = last_key_pose.local_rot.transpose() * (current_state_.pos - last_key_pose.local_pos);
+        Eigen::Vector3d rpy = rotate2rpy(diff_rot);
+        if (diff_pose.norm() > loop_closure_.mutableParams().dist_thresh ||
+            std::abs(rpy(0)) > loop_closure_.mutableParams().rad_thresh ||
+            std::abs(rpy(1)) > loop_closure_.mutableParams().rad_thresh ||
+            std::abs(rpy(2)) > loop_closure_.mutableParams().rad_thresh)
+        {
+            std::lock_guard<std::mutex> lock(shared_data_->mutex);
+            shared_data_->key_poses.emplace_back(idx, current_time_, current_state_.rot, current_state_.pos);
+            shared_data_->key_poses.back().addOffset(shared_data_->offset_rot, shared_data_->offset_pos);
+            shared_data_->key_pose_added = true;
+            shared_data_->cloud_history.push_back(lio_builder_->cloudUndistortedBody());
+        }
+    }
+
+    void MapBuilderNode::publishOdom(const nav_msgs::msg::Odometry &odom_to_pub)
+    {
+        if (odom_pub_->get_subscription_count() == 0)
+            return;
+        odom_pub_->publish(odom_to_pub);
+    }
+} // namespace IG_LIO
+
+bool terminate_flag = false;
+
+void signalHandler(int signum)
+{
+    std::cout << "SHUTTING DOWN MAPPING NODE!" << std::endl;
+    terminate_flag = true;
+}
 
 int main(int argc, char **argv)
 {
+    signal(SIGINT, signalHandler);
     return 0;
 }

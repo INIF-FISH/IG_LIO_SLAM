@@ -45,6 +45,7 @@ find_package(nav_msgs REQUIRED)
 find_package(livox_ros_driver2 REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(GTSAM REQUIRED)
 find_package(Sophus REQUIRED)
 
 # PCL
@@ -60,7 +61,8 @@ set(dependencies
   std_msgs
   nav_msgs
   livox_ros_driver2
-  geometry_msgs)
+  geometry_msgs
+  GTSAM)
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/include
@@ -108,6 +110,7 @@ ament_target_dependencies(map_builder_node
 target_link_libraries(map_builder_node
   ${Eigen3_LIBRARIES}
   ${PCL_LIBRARIES}
+  gtsam
 )
 
 install(TARGETS

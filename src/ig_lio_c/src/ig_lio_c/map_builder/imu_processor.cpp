@@ -97,7 +97,6 @@ namespace IG_LIO
         Q_.setIdentity();
 
         IG_LIO::Input inp;
-        // 计算每一帧IMU的位姿
         for (auto it_imu = v_imus.begin(); it_imu < (v_imus.end() - 1); it_imu++)
         {
             IMU &head = *it_imu;
@@ -106,7 +105,6 @@ namespace IG_LIO
                 continue;
             gyro_val = 0.5 * (head.gyro + tail.gyro);
             acc_val = 0.5 * (head.acc + head.acc);
-            // normalize acc
             acc_val = acc_val * 9.81 / mean_acc_.norm();
 
             if (head.timestamp < last_lidar_time_end_)
