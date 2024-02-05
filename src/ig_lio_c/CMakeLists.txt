@@ -34,16 +34,16 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # find dependencies
-find_package(ament_cmake REQUIRED COMPONENTS
-  rclcpp
-  rclcpp_components
-  tf2
-  tf2_ros
-  std_msgs
-  nav_msgs
-  eigen_conversions
-  livox_ros_driver2
-  geometry_msgs)
+find_package(ament_cmake REQUIRED COMPONENTS)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(pcl_ros REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(livox_ros_driver2 REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Sophus REQUIRED)
 
@@ -56,9 +56,9 @@ set(dependencies
   rclcpp_components
   tf2
   tf2_ros
+  pcl_ros
   std_msgs
   nav_msgs
-  eigen_conversions
   livox_ros_driver2
   geometry_msgs)
 
@@ -69,8 +69,60 @@ include_directories(
   ${PCL_INCLUDE_DIRS}
 )
 
+set(sources
+  src/ig_lio_c/ieskf/ieskf.cpp
+  src/ig_lio_c/ikd_tree/ikd_tree.cpp
+  src/map_builder_node.cpp
+)
+
 add_library(${PROJECT_NAME} SHARED
+  ${sources}
+)
+
+ament_target_dependencies(${PROJECT_NAME}
+  ${dependencies}
+)
+
+target_compile_definitions(${PROJECT_NAME}
+  PRIVATE "COMPOSITION_BUILDING_DLL"
+)
+
+rclcpp_components_register_nodes(${PROJECT_NAME}
+  PLUGIN "ig_lio_c::MapBuilderNode"
+  EXECUTABLE map_builder_node
+)
+
+add_executable(map_builder_node
+  ${sources}
+)
+
+ament_target_dependencies(map_builder_node
+  ${dependencies}
+)
+
+target_link_libraries(map_builder_node
+  ${Eigen3_LIBRARIES}
   ${PCL_LIBRARIES}
+)
+
+install(TARGETS
+  ${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
+
+install(TARGETS
+  map_builder_node
+
+  # testing
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
