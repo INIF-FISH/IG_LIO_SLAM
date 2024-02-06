@@ -176,6 +176,18 @@ namespace IG_LIO
         return (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y) + (p1.z - p2.z) * (p1.z - p2.z);
     }
 
+    sensor_msgs::msg::PointCloud2 pcl2msg(IG_LIO::PointCloudXYZI::Ptr inp, std::string &frame_id, const double &timestamp)
+    {
+        sensor_msgs::msg::PointCloud2 msg;
+        pcl::toROSMsg(*inp, msg);
+        if (timestamp < 0)
+            msg.header.stamp = rclcpp::Clock().now();
+        else
+            msg.header.stamp = rclcpp::Time(static_cast<uint64_t>(timestamp * 1e9));
+        msg.header.frame_id = frame_id;
+        return msg;
+    }
+
     nav_msgs::msg::Odometry eigen2Odometry(const Eigen::Matrix3d &rot, const Eigen::Vector3d &pos, const std::string &frame_id, const std::string &child_frame_id, const double &timestamp)
     {
         nav_msgs::msg::Odometry odom;

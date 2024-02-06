@@ -431,7 +431,12 @@ namespace IG_LIO
         void initPublishers();
         void init();
         void addKeyPose();
+        void publishBodyCloud(const sensor_msgs::msg::PointCloud2 &cloud_to_pub);
+        void publishLocalCloud(const sensor_msgs::msg::PointCloud2 &cloud_to_pub);
         void publishOdom(const nav_msgs::msg::Odometry &odom_to_pub);
+        void publishLocalPath();
+        void publishGlobalPath();
+        void publishLoopMark();
 
     private:
         std::string global_frame_;

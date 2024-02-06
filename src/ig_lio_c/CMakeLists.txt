@@ -42,6 +42,7 @@ find_package(tf2_ros REQUIRED)
 find_package(pcl_ros REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 find_package(livox_ros_driver2 REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -62,6 +63,7 @@ set(dependencies
   nav_msgs
   livox_ros_driver2
   geometry_msgs
+  visualization_msgs
   GTSAM)
 
 include_directories(

@@ -18,7 +18,7 @@ lio_builder:
   align_gravity: true
   near_mode: 1
   imu_ext_rot: [1, 0, 0, 0, 1, 0, 0, 0, 1]
-  imu_ext_pos: [0.05512, 0.02226, -0.0297]
+  imu_ext_pos: [0.011, 0.02329, -0.04412]
 
 loop_closure:
   activate: true

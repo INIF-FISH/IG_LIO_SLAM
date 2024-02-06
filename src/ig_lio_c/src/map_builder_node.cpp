@@ -28,14 +28,14 @@ namespace IG_LIO
         this->get_parameter("imu_topic", imu_data_.topic);
         this->get_parameter("livox_topic", livox_data_.topic);
         double local_rate, loop_rate;
-        this->declare_parameter<double>("local_rate", 20.0);
+        this->declare_parameter<double>("local_rate", 100.0);
         this->declare_parameter<double>("loop_rate", 1.0);
         this->get_parameter("local_rate", local_rate);
         this->get_parameter("loop_rate", loop_rate);
         local_rate_ = std::make_shared<rclcpp::Rate>(local_rate);
         loop_rate_ = std::make_shared<rclcpp::Rate>(loop_rate);
-        this->declare_parameter<double>("lio_builder/scan_resolution", 0.5);
-        this->declare_parameter<double>("lio_builder/map_resolution", 0.5);
+        this->declare_parameter<double>("lio_builder/scan_resolution", 0.4);
+        this->declare_parameter<double>("lio_builder/map_resolution", 0.4);
         this->declare_parameter<double>("lio_builder/point2plane_gain", 1000.0);
         this->declare_parameter<double>("lio_builder/plane2plane_gain", 100.0);
         this->get_parameter("lio_builder/scan_resolution", lio_params_.scan_resolution);
@@ -44,7 +44,7 @@ namespace IG_LIO
         this->get_parameter("lio_builder/plane2plane_gain", lio_params_.plane2plane_gain);
         int map_capacity, grid_capacity;
         this->declare_parameter<int>("lio_builder/map_capacity", 5000000);
-        this->declare_parameter<int>("lio_builder/grid_capacity", 20);
+        this->declare_parameter<int>("lio_builder/grid_capacity", 50);
         this->get_parameter("lio_builder/map_capacity", map_capacity);
         this->get_parameter("lio_builder/grid_capacity", grid_capacity);
         lio_params_.map_capacity = static_cast<size_t>(map_capacity);
@@ -52,7 +52,7 @@ namespace IG_LIO
         this->declare_parameter<bool>("lio_builder/align_gravity", true);
         this->declare_parameter<bool>("lio_builder/extrinsic_est_en", false);
         std::vector<double> pre_rot = {1, 0, 0, 0, 1, 0, 0, 0, 1};
-        std::vector<double> pre_pos = {0.05512, 0.02226, -0.0297};
+        std::vector<double> pre_pos = {-0.011, -0.02329, 0.04412};
         this->declare_parameter<std::vector<double>>("lio_builder/imu_ext_rot", pre_rot);
         this->declare_parameter<std::vector<double>>("lio_builder/imu_ext_pos", pre_pos);
         this->get_parameter("lio_builder/align_gravity", lio_params_.align_gravity);
@@ -117,7 +117,13 @@ namespace IG_LIO
         rclcpp::QoS qos(1);
         qos.reliability();
         qos.keep_last(1);
+
+        local_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("local_cloud", qos);
+        body_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud", qos);
         odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("slam_odom", qos);
+        loop_mark_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("loop_mark", qos);
+        local_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("local_path", qos);
+        global_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("global_path", qos);
     }
 
     void MapBuilderNode::init()
@@ -161,17 +167,15 @@ namespace IG_LIO
 
         addKeyPose();
 
-        // publishCloud(body_cloud_pub_,
-        //              pcl2msg(lio_builder_->cloudUndistortedBody(),
-        //                      body_frame_,
-        //                      current_time_));
-        // publishCloud(local_cloud_pub_,
-        //              pcl2msg(lio_builder_->cloudWorld(),
-        //                      local_frame_,
-        //                      current_time_));
-        // publishLocalPath();
-        // publishGlobalPath();
-        // publishLoopMark();
+        publishBodyCloud(pcl2msg(lio_builder_->cloudUndistortedBody(),
+                                 body_frame_,
+                                 current_time_));
+        publishLocalCloud(pcl2msg(lio_builder_->cloudWorld(),
+                                  local_frame_,
+                                  current_time_));
+        publishLocalPath();
+        publishGlobalPath();
+        publishLoopMark();
     }
 
     void MapBuilderNode::stop()
@@ -209,11 +213,142 @@ namespace IG_LIO
         }
     }
 
+    void MapBuilderNode::publishBodyCloud(const sensor_msgs::msg::PointCloud2 &cloud_to_pub)
+    {
+        if (body_cloud_pub_->get_subscription_count() == 0)
+            return;
+        body_cloud_pub_->publish(cloud_to_pub);
+    }
+
+    void MapBuilderNode::publishLocalCloud(const sensor_msgs::msg::PointCloud2 &cloud_to_pub)
+    {
+        if (local_cloud_pub_->get_subscription_count() == 0)
+            return;
+        local_cloud_pub_->publish(cloud_to_pub);
+    }
+
     void MapBuilderNode::publishOdom(const nav_msgs::msg::Odometry &odom_to_pub)
     {
         if (odom_pub_->get_subscription_count() == 0)
             return;
         odom_pub_->publish(odom_to_pub);
+    }
+
+    void MapBuilderNode::publishLocalPath()
+    {
+        if (local_path_pub_->get_subscription_count() == 0)
+            return;
+
+        if (shared_data_->key_poses.empty())
+            return;
+
+        nav_msgs::msg::Path path;
+        path.header.frame_id = global_frame_;
+        path.header.stamp = rclcpp::Time(static_cast<uint64_t>(current_time_ * 1e9));
+        for (Pose6D &p : shared_data_->key_poses)
+        {
+            geometry_msgs::msg::PoseStamped pose;
+            pose.header.frame_id = global_frame_;
+            pose.header.stamp = rclcpp::Time(static_cast<uint64_t>(current_time_ * 1e9));
+            pose.pose.position.x = p.local_pos(0);
+            pose.pose.position.y = p.local_pos(1);
+            pose.pose.position.z = p.local_pos(2);
+            Eigen::Quaterniond q(p.local_rot);
+            pose.pose.orientation.x = q.x();
+            pose.pose.orientation.y = q.y();
+            pose.pose.orientation.z = q.z();
+            pose.pose.orientation.w = q.w();
+            path.poses.push_back(pose);
+        }
+        local_path_pub_->publish(path);
+    }
+
+    void MapBuilderNode::publishGlobalPath()
+    {
+        if (global_path_pub_->get_subscription_count() == 0)
+            return;
+
+        if (shared_data_->key_poses.empty())
+            return;
+        nav_msgs::msg::Path path;
+        path.header.frame_id = global_frame_;
+        path.header.stamp = rclcpp::Time(static_cast<uint64_t>(current_time_ * 1e9));
+        for (Pose6D &p : shared_data_->key_poses)
+        {
+            geometry_msgs::msg::PoseStamped pose;
+            pose.header.frame_id = global_frame_;
+            pose.header.stamp = rclcpp::Time(static_cast<uint64_t>(current_time_ * 1e9));
+            pose.pose.position.x = p.global_pos(0);
+            pose.pose.position.y = p.global_pos(1);
+            pose.pose.position.z = p.global_pos(2);
+            Eigen::Quaterniond q(p.global_rot);
+            pose.pose.orientation.x = q.x();
+            pose.pose.orientation.y = q.y();
+            pose.pose.orientation.z = q.z();
+            pose.pose.orientation.w = q.w();
+            path.poses.push_back(pose);
+        }
+        global_path_pub_->publish(path);
+    }
+
+    void MapBuilderNode::publishLoopMark()
+    {
+        if (loop_mark_pub_->get_subscription_count() == 0)
+            return;
+        if (shared_data_->loop_history.empty())
+            return;
+        visualization_msgs::msg::MarkerArray marker_array;
+        visualization_msgs::msg::Marker nodes_marker;
+
+        nodes_marker.header.frame_id = global_frame_;
+        nodes_marker.header.stamp = rclcpp::Time(static_cast<uint64_t>(current_time_ * 1e9));
+        nodes_marker.ns = "loop_nodes";
+        nodes_marker.id = 0;
+        nodes_marker.type = visualization_msgs::msg::Marker::SPHERE_LIST;
+        nodes_marker.action = visualization_msgs::msg::Marker::ADD;
+        nodes_marker.pose.orientation.w = 1.0;
+        nodes_marker.scale.x = 0.1;
+        nodes_marker.scale.y = 0.1;
+        nodes_marker.scale.z = 0.1;
+        nodes_marker.color.r = 1.0;
+        nodes_marker.color.g = 0.8;
+        nodes_marker.color.b = 0.0;
+        nodes_marker.color.a = 1.0;
+
+        visualization_msgs::msg::Marker edges_marker;
+        edges_marker.header.frame_id = global_frame_;
+        edges_marker.header.stamp = rclcpp::Time(static_cast<uint64_t>(current_time_ * 1e9));
+        edges_marker.ns = "loop_edges";
+        edges_marker.id = 1;
+        edges_marker.type = visualization_msgs::msg::Marker::LINE_LIST;
+        edges_marker.action = visualization_msgs::msg::Marker::ADD;
+        edges_marker.pose.orientation.w = 1.0;
+        edges_marker.scale.x = 0.05;
+
+        edges_marker.color.r = 0.0;
+        edges_marker.color.g = 0.8;
+        edges_marker.color.b = 0.0;
+        edges_marker.color.a = 1.0;
+        for (auto &p : shared_data_->loop_history)
+        {
+            Pose6D &p1 = shared_data_->key_poses[p.first];
+            Pose6D &p2 = shared_data_->key_poses[p.second];
+            geometry_msgs::msg::Point point1;
+            point1.x = p1.global_pos(0);
+            point1.y = p1.global_pos(1);
+            point1.z = p1.global_pos(2);
+            geometry_msgs::msg::Point point2;
+            point2.x = p2.global_pos(0);
+            point2.y = p2.global_pos(1);
+            point2.z = p2.global_pos(2);
+            nodes_marker.points.push_back(point1);
+            nodes_marker.points.push_back(point2);
+            edges_marker.points.push_back(point1);
+            edges_marker.points.push_back(point2);
+        }
+        marker_array.markers.push_back(nodes_marker);
+        marker_array.markers.push_back(edges_marker);
+        loop_mark_pub_->publish(marker_array);
     }
 } // namespace IG_LIO
 
