@@ -56,7 +56,7 @@ namespace IG_LIO
         std::mutex mutex;
         std::deque<IG_LIO::IMU> buffer;
         double last_timestamp = 0;
-        void callback(const sensor_msgs::msg::Imu::ConstSharedPtr &msg);
+        void callback(const sensor_msgs::msg::Imu::SharedPtr msg);
     };
 
     struct LivoxData
@@ -68,8 +68,8 @@ namespace IG_LIO
         double blind = 0.5;
         int filter_num = 3;
         double last_timestamp = 0;
-        void callback(const livox_ros_driver2::msg::CustomMsg::ConstSharedPtr &msg);
-        void livox2pcl(const livox_ros_driver2::msg::CustomMsg::ConstSharedPtr &msg, IG_LIO::PointCloudXYZI::Ptr &out);
+        void callback(const livox_ros_driver2::msg::CustomMsg::SharedPtr msg);
+        void livox2pcl(const livox_ros_driver2::msg::CustomMsg::SharedPtr msg, IG_LIO::PointCloudXYZI::Ptr out);
     };
 
     struct MeasureGroup

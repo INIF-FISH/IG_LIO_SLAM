@@ -2,10 +2,10 @@
 
 namespace IG_LIO
 {
-    void ImuData::callback(const sensor_msgs::msg::Imu::ConstPtr &msg)
+    void ImuData::callback(const sensor_msgs::msg::Imu::SharedPtr msg)
     {
         std::lock_guard<std::mutex> lock(mutex);
-        double timestamp = msg->header.stamp.sec;
+        double timestamp = msg->header.stamp.sec + msg->header.stamp.nanosec / 1e9;
         if (timestamp < last_timestamp)
         {
             std::cout << "imu loop back, clear buffer, last_timestamp: " << last_timestamp << "  current_timestamp: " << timestamp << std::endl;
@@ -21,10 +21,10 @@ namespace IG_LIO
                             msg->angular_velocity.z);
     }
 
-    void LivoxData::callback(const livox_ros_driver2::msg::CustomMsg::ConstSharedPtr &msg)
+    void LivoxData::callback(const livox_ros_driver2::msg::CustomMsg::SharedPtr msg)
     {
         std::lock_guard<std::mutex> lock(mutex);
-        double timestamp = msg->header.stamp.sec;
+        double timestamp = msg->header.stamp.sec + msg->header.stamp.nanosec / 1e9;
         if (timestamp < last_timestamp)
         {
             std::cout << "livox loop back, clear buffer, last_timestamp: " << last_timestamp << "  current_timestamp: " << timestamp << std::endl;
@@ -38,7 +38,7 @@ namespace IG_LIO
         time_buffer.push_back(last_timestamp);
     }
 
-    void LivoxData::livox2pcl(const livox_ros_driver2::msg::CustomMsg::ConstSharedPtr &msg, IG_LIO::PointCloudXYZI::Ptr &out)
+    void LivoxData::livox2pcl(const livox_ros_driver2::msg::CustomMsg::SharedPtr msg, IG_LIO::PointCloudXYZI::Ptr out)
     {
         int point_num = msg->point_num;
         out->clear();

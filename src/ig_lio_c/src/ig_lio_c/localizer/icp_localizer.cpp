@@ -69,9 +69,6 @@ namespace IG_LIO
         if (score_ > thresh_)
             return Eigen::Matrix4d::Zero();
         success_ = true;
-        // auto toc = std::chrono::system_clock::now();
-        // std::chrono::duration<double> duration = toc - tic;
-        // std::cout << "align used: " << duration.count() * 1000 << std::endl;
         return icp_refine_.getFinalTransformation().cast<double>();
     }
 

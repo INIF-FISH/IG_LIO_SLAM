@@ -27,7 +27,6 @@ namespace IG_LIO
             [this](IG_LIO::State &s, IG_LIO::SharedState &d)
             { sharedUpdateFunc(s, d); });
 
-        // 初始化IMUProcessor
         imu_processor_ = std::make_shared<IMUProcessor>(kf_);
         imu_processor_->setCov(params.imu_gyro_cov, params.imu_acc_cov, params.imu_gyro_bias_cov, params.imu_acc_bias_cov);
         Eigen::Matrix3d rot_ext;
@@ -159,7 +158,7 @@ namespace IG_LIO
         }
 
         if (effect_feat_num < 1)
-            std::cout << "NO EFFECTIVE POINTS!" << std::endl;
+            std::cout << "FastlioConstraint NO EFFECTIVE POINTS!" << std::endl;
     }
 
     void IGLIOBuilder::gicpConstraint(IG_LIO::State &state, IG_LIO::SharedState &shared_state)
@@ -217,7 +216,7 @@ namespace IG_LIO
         }
 
         if (gicp_cache_.size() < 1)
-            std::cout << "NO EFFECTIVE POINTS!" << std::endl;
+            std::cout << "GicpConstraint NO EFFECTIVE POINTS!" << std::endl;
     }
 
     PointCloudXYZI::Ptr IGLIOBuilder::transformToWorld(const PointCloudXYZI::Ptr cloud)

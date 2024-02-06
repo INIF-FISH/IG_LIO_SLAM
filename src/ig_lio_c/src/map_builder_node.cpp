@@ -8,7 +8,7 @@ namespace IG_LIO
         param_respond();
         initSubscribers();
         initPublishers();
-        start();
+        init();
     }
 
     MapBuilderNode::~MapBuilderNode()
@@ -52,7 +52,7 @@ namespace IG_LIO
         this->declare_parameter<bool>("lio_builder/align_gravity", true);
         this->declare_parameter<bool>("lio_builder/extrinsic_est_en", false);
         std::vector<double> pre_rot = {1, 0, 0, 0, 1, 0, 0, 0, 1};
-        std::vector<double> pre_pos = {0, 0, 0};
+        std::vector<double> pre_pos = {0.05512, 0.02226, -0.0297};
         this->declare_parameter<std::vector<double>>("lio_builder/imu_ext_rot", pre_rot);
         this->declare_parameter<std::vector<double>>("lio_builder/imu_ext_pos", pre_pos);
         this->get_parameter("lio_builder/align_gravity", lio_params_.align_gravity);
@@ -105,16 +105,22 @@ namespace IG_LIO
 
     void MapBuilderNode::initSubscribers()
     {
+        rclcpp::QoS qos(1);
+        qos.reliability();
+        qos.keep_last(1);
+        imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(imu_data_.topic, qos, std::bind(&ImuData::callback, &imu_data_, _1));
+        livox_sub_ = this->create_subscription<livox_ros_driver2::msg::CustomMsg>(livox_data_.topic, qos, std::bind(&LivoxData::callback, &livox_data_, _1));
     }
+
     void MapBuilderNode::initPublishers()
     {
-        rclcpp::QoS qos(1000);
+        rclcpp::QoS qos(1);
         qos.reliability();
         qos.keep_last(1);
         odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("slam_odom", qos);
     }
 
-    void MapBuilderNode::start()
+    void MapBuilderNode::init()
     {
         shared_data_ = std::make_shared<SharedData>();
         this->br_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
@@ -123,8 +129,7 @@ namespace IG_LIO
         loop_closure_.setShared(shared_data_);
         loop_closure_.init();
         loop_thread_ = std::make_shared<std::thread>(std::ref(loop_closure_));
-        timer_ = this->create_wall_timer(
-            10ms, std::bind(&MapBuilderNode::run, this));
+        f = std::bind(&MapBuilderNode::run, this);
     }
 
     void MapBuilderNode::run()
@@ -228,6 +233,7 @@ int main(int argc, char **argv)
     while (rclcpp::ok() && !terminate_flag)
     {
         rclcpp::spin_some(node);
+        node->f();
     }
     node->stop();
     rclcpp::shutdown();

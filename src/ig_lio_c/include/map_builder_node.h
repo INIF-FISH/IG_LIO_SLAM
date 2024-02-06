@@ -36,6 +36,7 @@
 namespace IG_LIO
 {
     using namespace std::chrono;
+    using std::placeholders::_1;
 
     class ZaxisPriorFactor : public gtsam::NoiseModelFactor1<gtsam::Pose3>
     {
@@ -214,7 +215,6 @@ namespace IG_LIO
                     temp_poses_.clear();
                     temp_poses_.assign(shared_data_->key_poses.begin(), shared_data_->key_poses.end());
                 }
-
                 loopCheck();
                 addOdomFactor();
                 addLoopFactor();
@@ -311,6 +311,7 @@ namespace IG_LIO
             if (!icp_->hasConverged() || score > loop_params_.loop_icp_thresh)
                 return;
 
+            std::cout << "Detected LOOP: " << pre_index << " " << cur_index << " " << score << std::endl;
             shared_data_->loop_history.emplace_back(pre_index, cur_index);
             loop_found_ = true;
 
@@ -422,11 +423,13 @@ namespace IG_LIO
         void run();
         void stop();
 
+        std::function<void(void)> f;
+
     private:
         void param_respond();
         void initSubscribers();
         void initPublishers();
-        void start();
+        void init();
         void addKeyPose();
         void publishOdom(const nav_msgs::msg::Odometry &odom_to_pub);
 
@@ -457,7 +460,6 @@ namespace IG_LIO
         rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr global_path_pub_;
         rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
         rclcpp::Subscription<livox_ros_driver2::msg::CustomMsg>::SharedPtr livox_sub_;
-        rclcpp::TimerBase::SharedPtr timer_;
     };
 } // namespace IG_LIO
 
