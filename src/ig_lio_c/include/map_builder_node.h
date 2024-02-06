@@ -27,8 +27,8 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <tf2_ros/transform_broadcaster.h>
-#include <visualization_msgs/msg/marker.h>
-#include <visualization_msgs/msg/marker_array.h>
+#include <visualization_msgs/msg/marker.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 
 #include "./ig_lio_c/map_builder/iglio_builder.h"
 #include "./ig_lio_c/localizer/icp_localizer.h"
@@ -450,6 +450,13 @@ namespace IG_LIO
         pcl::PCDWriter writer_;
 
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
+        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr local_cloud_pub_;
+        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr body_cloud_pub_;
+        rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr loop_mark_pub_;
+        rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr local_path_pub_;
+        rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr global_path_pub_;
+        rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
+        rclcpp::Subscription<livox_ros_driver2::msg::CustomMsg>::SharedPtr livox_sub_;
         rclcpp::TimerBase::SharedPtr timer_;
     };
 } // namespace IG_LIO

@@ -2,6 +2,69 @@
 
 namespace IG_LIO
 {
+    void ImuData::callback(const sensor_msgs::msg::Imu::ConstPtr &msg)
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        double timestamp = msg->header.stamp.sec;
+        if (timestamp < last_timestamp)
+        {
+            std::cout << "imu loop back, clear buffer, last_timestamp: " << last_timestamp << "  current_timestamp: " << timestamp << std::endl;
+            buffer.clear();
+        }
+        last_timestamp = timestamp;
+        buffer.emplace_back(timestamp,
+                            msg->linear_acceleration.x,
+                            msg->linear_acceleration.y,
+                            msg->linear_acceleration.z,
+                            msg->angular_velocity.x,
+                            msg->angular_velocity.y,
+                            msg->angular_velocity.z);
+    }
+
+    void LivoxData::callback(const livox_ros_driver2::msg::CustomMsg::ConstSharedPtr &msg)
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        double timestamp = msg->header.stamp.sec;
+        if (timestamp < last_timestamp)
+        {
+            std::cout << "livox loop back, clear buffer, last_timestamp: " << last_timestamp << "  current_timestamp: " << timestamp << std::endl;
+            buffer.clear();
+            time_buffer.clear();
+        }
+        last_timestamp = timestamp;
+        IG_LIO::PointCloudXYZI::Ptr ptr(new IG_LIO::PointCloudXYZI());
+        livox2pcl(msg, ptr);
+        buffer.push_back(ptr);
+        time_buffer.push_back(last_timestamp);
+    }
+
+    void LivoxData::livox2pcl(const livox_ros_driver2::msg::CustomMsg::ConstSharedPtr &msg, IG_LIO::PointCloudXYZI::Ptr &out)
+    {
+        int point_num = msg->point_num;
+        out->clear();
+        out->reserve(point_num / filter_num + 1);
+        uint valid_num = 0;
+        for (uint i = 0; i < point_num; i++)
+        {
+            if ((msg->points[i].line < 4) && ((msg->points[i].tag & 0x30) == 0x10 || (msg->points[i].tag & 0x30) == 0x00))
+            {
+                valid_num++;
+                if (valid_num % filter_num != 0)
+                    continue;
+                IG_LIO::PointType p;
+                p.x = msg->points[i].x;
+                p.y = msg->points[i].y;
+                p.z = msg->points[i].z;
+                p.intensity = msg->points[i].reflectivity;
+                p.curvature = msg->points[i].offset_time / float(1000000);
+                if ((p.x * p.x + p.y * p.y + p.z * p.z > (blind * blind)))
+                {
+                    out->push_back(p);
+                }
+            }
+        }
+    }
+
     Eigen::Vector3d rotate2rpy(Eigen::Matrix3d &rot)
     {
         double roll = std::atan2(rot(2, 1), rot(2, 2));
