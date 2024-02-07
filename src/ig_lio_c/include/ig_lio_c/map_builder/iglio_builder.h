@@ -31,7 +31,7 @@ namespace IG_LIO
     struct IGLIOParams
     {
         double point2plane_gain = 1000.0;
-        double plane2plane_gain = 100.0;
+        double gicp_constraint_gain = 100.0;
         double scan_resolution = 0.5;
         double map_resolution = 0.5;
         int max_points_per_scan = 10000;

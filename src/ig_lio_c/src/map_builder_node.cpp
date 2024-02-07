@@ -36,12 +36,12 @@ namespace IG_LIO
         loop_rate_ = std::make_shared<rclcpp::Rate>(loop_rate);
         this->declare_parameter<double>("lio_builder/scan_resolution", 0.3);
         this->declare_parameter<double>("lio_builder/map_resolution", 0.3);
-        this->declare_parameter<double>("lio_builder/point2plane_gain", 1000.0);
-        this->declare_parameter<double>("lio_builder/plane2plane_gain", 100.0);
+        this->declare_parameter<double>("lio_builder/point2plane_gain", 100.0);
+        this->declare_parameter<double>("lio_builder/gicp_constraint_gain", 100.0);
         this->get_parameter("lio_builder/scan_resolution", lio_params_.scan_resolution);
         this->get_parameter("lio_builder/map_resolution", lio_params_.map_resolution);
         this->get_parameter("lio_builder/point2plane_gain", lio_params_.point2plane_gain);
-        this->get_parameter("lio_builder/plane2plane_gain", lio_params_.plane2plane_gain);
+        this->get_parameter("lio_builder/gicp_constraint_gain", lio_params_.gicp_constraint_gain);
         int map_capacity, grid_capacity;
         this->declare_parameter<int>("lio_builder/map_capacity", 5000000);
         this->declare_parameter<int>("lio_builder/grid_capacity", 20);
@@ -50,7 +50,7 @@ namespace IG_LIO
         lio_params_.map_capacity = static_cast<size_t>(map_capacity);
         lio_params_.grid_capacity = static_cast<size_t>(grid_capacity);
         this->declare_parameter<bool>("lio_builder/align_gravity", true);
-        this->declare_parameter<bool>("lio_builder/extrinsic_est_en", false);
+        this->declare_parameter<bool>("lio_builder/extrinsic_est_en", true);
         std::vector<double> pre_rot = {1, 0, 0, 0, 1, 0, 0, 0, 1};
         std::vector<double> pre_pos = {-0.011, -0.02329, 0.04412};
         this->declare_parameter<double>("lio_builder/acc_cov", 0.1);

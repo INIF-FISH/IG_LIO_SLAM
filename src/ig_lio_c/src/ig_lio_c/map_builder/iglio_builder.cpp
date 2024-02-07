@@ -153,8 +153,8 @@ namespace IG_LIO
                 J.block<1, 3>(0, 6) = C;
                 J.block<1, 3>(0, 9) = D;
             }
-            shared_state.H += J.transpose() * params_.plane2plane_gain * J;
-            shared_state.b += J.transpose() * params_.plane2plane_gain * error;
+            shared_state.H += J.transpose() * params_.point2plane_gain * J;
+            shared_state.b += J.transpose() * params_.point2plane_gain * error;
         }
 
         if (effect_feat_num < 1)
@@ -210,9 +210,9 @@ namespace IG_LIO
                 J.block<3, 3>(0, 6) = state.rot * state.rot_ext * Sophus::SO3d::hat(p_lidar);
                 J.block<3, 3>(0, 9) = -state.rot;
             }
-            Eigen::Matrix3d robust_information_matrix = params_.point2plane_gain * (rho[1] * omiga + 2.0 * rho[2] * omiga * error * error.transpose() * omiga);
+            Eigen::Matrix3d robust_information_matrix = params_.gicp_constraint_gain * (rho[1] * omiga + 2.0 * rho[2] * omiga * error * error.transpose() * omiga);
             shared_state.H += (J.transpose() * robust_information_matrix * J);
-            shared_state.b += (params_.point2plane_gain * rho[1] * J.transpose() * omiga * error);
+            shared_state.b += (params_.gicp_constraint_gain * rho[1] * J.transpose() * omiga * error);
         }
 
         if (gicp_cache_.size() < 1)
