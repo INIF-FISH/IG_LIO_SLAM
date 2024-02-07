@@ -52,7 +52,6 @@ namespace IG_LIO
         PointCloudXYZI::Ptr rough_source_norm = addNorm(rough_source);
         PointCloudXYZI::Ptr refine_source_norm = addNorm(refine_source);
         PointCloudXYZI::Ptr align_point(new PointCloudXYZI);
-        // auto tic = std::chrono::system_clock::now();
         icp_rough_.setInputSource(rough_source_norm);
         icp_rough_.align(*align_point, init_guess.cast<float>());
 
@@ -153,7 +152,6 @@ namespace IG_LIO
         Eigen::Matrix4f best_rough_transform;
         double best_rough_score = 10.0;
         bool rough_converge = false;
-        // auto tic = std::chrono::system_clock::now();
         for (Eigen::Matrix4f &init_pose : candidates)
         {
             icp_rough_.setInputSource(rough_source_norm);

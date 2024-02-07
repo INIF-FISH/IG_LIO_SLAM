@@ -97,7 +97,7 @@ namespace IG_LIO
         void update();
 
     private:
-        size_t max_iter_ = 5;
+        size_t max_iter_ = 8;
         double eps_ = 0.001;
         State x_;
         Matrix23d P_;

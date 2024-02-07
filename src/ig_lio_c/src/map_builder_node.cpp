@@ -28,14 +28,14 @@ namespace IG_LIO
         this->get_parameter("imu_topic", imu_data_.topic);
         this->get_parameter("livox_topic", livox_data_.topic);
         double local_rate, loop_rate;
-        this->declare_parameter<double>("local_rate", 100.0);
-        this->declare_parameter<double>("loop_rate", 1.0);
+        this->declare_parameter<double>("local_rate", 20.0);
+        this->declare_parameter<double>("loop_rate", 2.0);
         this->get_parameter("local_rate", local_rate);
         this->get_parameter("loop_rate", loop_rate);
         local_rate_ = std::make_shared<rclcpp::Rate>(local_rate);
         loop_rate_ = std::make_shared<rclcpp::Rate>(loop_rate);
-        this->declare_parameter<double>("lio_builder/scan_resolution", 0.4);
-        this->declare_parameter<double>("lio_builder/map_resolution", 0.4);
+        this->declare_parameter<double>("lio_builder/scan_resolution", 0.3);
+        this->declare_parameter<double>("lio_builder/map_resolution", 0.3);
         this->declare_parameter<double>("lio_builder/point2plane_gain", 1000.0);
         this->declare_parameter<double>("lio_builder/plane2plane_gain", 100.0);
         this->get_parameter("lio_builder/scan_resolution", lio_params_.scan_resolution);
@@ -44,7 +44,7 @@ namespace IG_LIO
         this->get_parameter("lio_builder/plane2plane_gain", lio_params_.plane2plane_gain);
         int map_capacity, grid_capacity;
         this->declare_parameter<int>("lio_builder/map_capacity", 5000000);
-        this->declare_parameter<int>("lio_builder/grid_capacity", 50);
+        this->declare_parameter<int>("lio_builder/grid_capacity", 20);
         this->get_parameter("lio_builder/map_capacity", map_capacity);
         this->get_parameter("lio_builder/grid_capacity", grid_capacity);
         lio_params_.map_capacity = static_cast<size_t>(map_capacity);
@@ -53,14 +53,22 @@ namespace IG_LIO
         this->declare_parameter<bool>("lio_builder/extrinsic_est_en", false);
         std::vector<double> pre_rot = {1, 0, 0, 0, 1, 0, 0, 0, 1};
         std::vector<double> pre_pos = {-0.011, -0.02329, 0.04412};
+        this->declare_parameter<double>("lio_builder/acc_cov", 0.1);
+        this->declare_parameter<double>("lio_builder/gyr_cov", 0.1);
+        this->declare_parameter<double>("lio_builder/ba_cov", 0.00001);
+        this->declare_parameter<double>("lio_builder/bg_cov", 0.00001);
         this->declare_parameter<std::vector<double>>("lio_builder/imu_ext_rot", pre_rot);
         this->declare_parameter<std::vector<double>>("lio_builder/imu_ext_pos", pre_pos);
+        this->get_parameter("lio_builder/acc_cov", lio_params_.imu_acc_cov);
+        this->get_parameter("lio_builder/gyr_cov", lio_params_.imu_gyro_cov);
+        this->get_parameter("lio_builder/ba_cov", lio_params_.imu_acc_bias_cov);
+        this->get_parameter("lio_builder/bg_cov", lio_params_.imu_gyro_bias_cov);
         this->get_parameter("lio_builder/align_gravity", lio_params_.align_gravity);
         this->get_parameter("lio_builder/extrinsic_est_en", lio_params_.extrinsic_est_en);
         this->get_parameter("lio_builder/imu_ext_rot", lio_params_.imu_ext_rot);
         this->get_parameter("lio_builder/imu_ext_pos", lio_params_.imu_ext_pos);
         int mode;
-        this->declare_parameter<int>("lio_builder/near_mode", 1);
+        this->declare_parameter<int>("lio_builder/near_mode", 2);
         this->get_parameter("lio_builder/near_mode", mode);
         switch (mode)
         {
@@ -148,6 +156,11 @@ namespace IG_LIO
             return;
         current_time_ = measure_group_.lidar_time_end;
         current_state_ = lio_builder_->currentState();
+        std::cout << "ba: " << current_state_.ba.transpose()
+                  << " ba_norm: " << current_state_.ba.norm()
+                  << " bg: " << current_state_.bg.transpose() * 180.0 / M_PI
+                  << " bg_norm: " << current_state_.bg.norm() * 180.0 / M_PI
+                  << std::endl;
         br_->sendTransform(eigen2Transform(shared_data_->offset_rot,
                                            shared_data_->offset_pos,
                                            global_frame_,
@@ -362,6 +375,8 @@ void signalHandler(int signum)
 
 int main(int argc, char **argv)
 {
+    std::cout.fill('0');
+    std::cout.width(8);
     signal(SIGINT, signalHandler);
     rclcpp::init(argc, argv);
     auto node = std::make_shared<IG_LIO::MapBuilderNode>();

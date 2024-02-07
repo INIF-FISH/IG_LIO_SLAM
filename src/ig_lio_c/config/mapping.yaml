@@ -17,6 +17,10 @@ lio_builder:
   extrinsic_est_en: false
   align_gravity: true
   near_mode: 1
+  acc_cov: 0.1
+  gyr_cov: 0.1
+  ba_cov: 0.00001
+  bg_cov: 0.00001
   imu_ext_rot: [1, 0, 0, 0, 1, 0, 0, 0, 1]
   imu_ext_pos: [0.011, 0.02329, -0.04412]
 
