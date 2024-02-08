@@ -48,6 +48,9 @@ namespace IG_LIO
         std::vector<double> imu_ext_rot = {1, 0, 0, 0, 1, 0, 0, 0, 1};
         std::vector<double> imu_ext_pos = {-0.011, -0.02329, 0.04412};
 
+        std::vector<double> ext_r = {3.14, 0., 0.};
+        std::vector<double> ext_t = {-0.0151, 0., 0.};
+
         bool extrinsic_est_en = false;
         bool align_gravity = true;
     };

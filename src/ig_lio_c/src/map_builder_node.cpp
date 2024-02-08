@@ -29,7 +29,7 @@ namespace IG_LIO
         this->get_parameter("livox_topic", livox_data_.topic);
         double local_rate, loop_rate;
         this->declare_parameter<double>("local_rate", 20.0);
-        this->declare_parameter<double>("loop_rate", 2.0);
+        this->declare_parameter<double>("loop_rate", 1.0);
         this->get_parameter("local_rate", local_rate);
         this->get_parameter("loop_rate", loop_rate);
         local_rate_ = std::make_shared<rclcpp::Rate>(local_rate);
@@ -50,7 +50,7 @@ namespace IG_LIO
         lio_params_.map_capacity = static_cast<size_t>(map_capacity);
         lio_params_.grid_capacity = static_cast<size_t>(grid_capacity);
         this->declare_parameter<bool>("lio_builder/align_gravity", true);
-        this->declare_parameter<bool>("lio_builder/extrinsic_est_en", true);
+        this->declare_parameter<bool>("lio_builder/extrinsic_est_en", false);
         std::vector<double> pre_rot = {1, 0, 0, 0, 1, 0, 0, 0, 1};
         std::vector<double> pre_pos = {-0.011, -0.02329, 0.04412};
         this->declare_parameter<double>("lio_builder/acc_cov", 0.1);
@@ -89,6 +89,12 @@ namespace IG_LIO
             lio_params_.mode = IG_LIO::VoxelMap::MODE::NEARBY_1;
             break;
         }
+        std::vector<double> pre_ext_r = {3.14, 0., 0.};
+        std::vector<double> pre_ext_t = {-0.0151, 0., 0.};
+        this->declare_parameter<std::vector<double>>("lio_slam/ext_r", pre_ext_r);
+        this->declare_parameter<std::vector<double>>("lio_slam/ext_t", pre_ext_t);
+        this->get_parameter("lio_slam/ext_r", lio_params_.ext_r);
+        this->get_parameter("lio_slam/ext_t", lio_params_.ext_t);
         this->declare_parameter<bool>("loop_closure/activate", true);
         this->declare_parameter<double>("loop_closure/rad_thresh", 0.4);
         this->declare_parameter<double>("loop_closure/dist_thresh", 2.5);
@@ -137,13 +143,15 @@ namespace IG_LIO
     void MapBuilderNode::init()
     {
         shared_data_ = std::make_shared<SharedData>();
-        this->br_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+        br_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+        static_br_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
         lio_builder_ = std::make_shared<IG_LIO::IGLIOBuilder>(lio_params_);
         loop_closure_.setRate(loop_rate_);
         loop_closure_.setShared(shared_data_);
         loop_closure_.init();
         loop_thread_ = std::make_shared<std::thread>(std::ref(loop_closure_));
         f = std::bind(&MapBuilderNode::run, this);
+        publishBaseLink();
     }
 
     void MapBuilderNode::run()
@@ -238,6 +246,32 @@ namespace IG_LIO
         if (local_cloud_pub_->get_subscription_count() == 0)
             return;
         local_cloud_pub_->publish(cloud_to_pub);
+    }
+
+    void MapBuilderNode::publishBaseLink()
+    {
+        Eigen::Vector3d baselink2odom_t;
+        Eigen::Matrix3d baselink2odom_r;
+        baselink2odom_r = Eigen::AngleAxisd(lio_params_.ext_r[0], Eigen::Vector3d::UnitX()) *
+                          Eigen::AngleAxisd(lio_params_.ext_r[1], Eigen::Vector3d::UnitY()) *
+                          Eigen::AngleAxisd(lio_params_.ext_r[2], Eigen::Vector3d::UnitZ());
+        baselink2odom_t << lio_params_.ext_t[0], lio_params_.ext_t[1], lio_params_.ext_t[2];
+        Eigen::Isometry3d baselink_pose = Eigen::Isometry3d::Identity();
+        baselink_pose.translation() = baselink2odom_t;
+        baselink_pose.rotate(baselink2odom_r);
+        geometry_msgs::msg::TransformStamped transform;
+        transform.header.frame_id = body_frame_;
+        transform.header.stamp = rclcpp::Clock().now();
+        transform.child_frame_id = "base_link";
+        transform.transform.translation.x = baselink_pose.translation().x();
+        transform.transform.translation.y = baselink_pose.translation().y();
+        transform.transform.translation.z = baselink_pose.translation().z();
+        Eigen::Quaterniond q = Eigen::Quaterniond(baselink_pose.rotation());
+        transform.transform.rotation.w = q.w();
+        transform.transform.rotation.x = q.x();
+        transform.transform.rotation.y = q.y();
+        transform.transform.rotation.z = q.z();
+        static_br_->sendTransform(transform);
     }
 
     void MapBuilderNode::publishOdom(const nav_msgs::msg::Odometry &odom_to_pub)

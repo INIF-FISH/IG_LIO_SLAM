@@ -27,6 +27,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
@@ -434,6 +435,7 @@ namespace IG_LIO
         void publishBodyCloud(const sensor_msgs::msg::PointCloud2 &cloud_to_pub);
         void publishLocalCloud(const sensor_msgs::msg::PointCloud2 &cloud_to_pub);
         void publishOdom(const nav_msgs::msg::Odometry &odom_to_pub);
+        void publishBaseLink();
         void publishLocalPath();
         void publishGlobalPath();
         void publishLoopMark();
@@ -455,6 +457,7 @@ namespace IG_LIO
         LoopClosureThread loop_closure_;
         std::shared_ptr<std::thread> loop_thread_;
         std::shared_ptr<tf2_ros::TransformBroadcaster> br_;
+        std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_br_;
         pcl::PCDWriter writer_;
 
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;

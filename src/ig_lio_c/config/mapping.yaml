@@ -22,7 +22,11 @@ lio_builder:
   ba_cov: 0.00001
   bg_cov: 0.00001
   imu_ext_rot: [1, 0, 0, 0, 1, 0, 0, 0, 1]
-  imu_ext_pos: [0.011, 0.02329, -0.04412]
+  imu_ext_pos: [-0.011, -0.02329, 0.04412]
+
+lio_slam:
+  ext_r: [0., 0., 3.14]
+  ext_t: [15.051948, 0., 0.]
 
 loop_closure:
   activate: true
