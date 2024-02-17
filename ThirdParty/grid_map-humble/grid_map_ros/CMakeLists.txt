@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(grid_map_ros)
+set(CMAKE_CXX_STANDARD 17)
 
 ## Find catkin macros and libraries
 find_package(ament_cmake REQUIRED)

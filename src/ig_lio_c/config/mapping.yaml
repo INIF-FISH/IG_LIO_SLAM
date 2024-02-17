@@ -1,7 +1,7 @@
 map_frame: map
 local_frame: local
 body_frame: body
-imu_topic: /livox/imu
+imu_topic: /imu/data
 livox_topic: /livox/lidar
 
 local_rate: 20.0
@@ -38,4 +38,3 @@ loop_closure:
   submap_resolution: 0.5
   submap_search_num: 25
   loop_icp_thresh: 0.3
-  z_prior: false

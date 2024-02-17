@@ -126,7 +126,6 @@ namespace IG_LIO
         int submap_search_num = 20;
         double loop_icp_thresh = 0.3;
         bool activate = true;
-        bool z_prior = false;
     };
 
     class LoopClosureThread
@@ -340,11 +339,6 @@ namespace IG_LIO
                                                                  gtsam::Point3(p2.local_pos)));
                 Eigen::Matrix3d R12 = p1.local_rot.transpose() * p2.local_rot;
                 Eigen::Vector3d t12 = p1.local_rot.transpose() * (p2.local_pos - p1.local_pos);
-                if (loop_params_.z_prior)
-                {
-                    gtsam::noiseModel::Diagonal::shared_ptr noise_prior = gtsam::noiseModel::Diagonal::Variances(gtsam::Vector1::Ones());
-                    gtsam_graph_.add(ZaxisPriorFactor(i + 1, noise_prior, p2.local_pos(2)));
-                }
 
                 gtsam::noiseModel::Diagonal::shared_ptr noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-6).finished());
                 gtsam_graph_.add(gtsam::BetweenFactor<gtsam::Pose3>(i,

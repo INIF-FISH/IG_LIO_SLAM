@@ -48,10 +48,11 @@ find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(GTSAM REQUIRED)
 find_package(Sophus REQUIRED)
+find_package(PCL REQUIRED)
 
 # PCL
-file(GLOB PCL_LIBRARIES /usr/local/lib/libpcl_*)
-set(PCL_INCLUDE_DIRS /usr/local/include/pcl-1.12)
+# file(GLOB PCL_LIBRARIES /usr/local/lib/libpcl_*)
+# set(PCL_INCLUDE_DIRS /usr/local/include/pcl-1.12)
 
 set(dependencies
   rclcpp

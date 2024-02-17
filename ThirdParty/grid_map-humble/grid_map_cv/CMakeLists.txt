@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(grid_map_cv)
+set(CMAKE_CXX_STANDARD 17)
 
 ## Find ament packages
 find_package(ament_cmake REQUIRED)

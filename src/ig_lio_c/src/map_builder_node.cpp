@@ -20,7 +20,7 @@ namespace IG_LIO
         this->declare_parameter<std::string>("map_frame", "map");
         this->declare_parameter<std::string>("local_frame", "local");
         this->declare_parameter<std::string>("body_frame", "body");
-        this->declare_parameter<std::string>("imu_topic", "/livox/imu");
+        this->declare_parameter<std::string>("imu_topic", "/imu/data");
         this->declare_parameter<std::string>("livox_topic", "/livox/lidar");
         this->get_parameter("map_frame", global_frame_);
         this->get_parameter("local_frame", local_frame_);
@@ -114,7 +114,6 @@ namespace IG_LIO
         this->get_parameter("loop_closure/submap_resolution", loop_closure_.mutableParams().submap_resolution);
         this->get_parameter("loop_closure/submap_search_num", loop_closure_.mutableParams().submap_search_num);
         this->get_parameter("loop_closure/loop_icp_thresh", loop_closure_.mutableParams().loop_icp_thresh);
-        this->get_parameter("loop_closure/z_prior", loop_closure_.mutableParams().z_prior);
     }
 
     void MapBuilderNode::initSubscribers()

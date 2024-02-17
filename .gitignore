@@ -1,6 +1,7 @@
 ThirdParty/ws_livox/build
 ThirdParty/ws_livox/install
 ThirdParty/ws_livox/log
+ThirdParty/ws_livox/src/**
 build
 install
 log

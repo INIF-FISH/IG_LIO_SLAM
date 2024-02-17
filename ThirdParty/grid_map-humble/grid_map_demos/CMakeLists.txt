@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.5.0)
 project(grid_map_demos)
+set(CMAKE_CXX_STANDARD 17)
 
 ## Find ament_cmake macros and libraries
 find_package(ament_cmake REQUIRED)

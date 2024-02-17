@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(grid_map_msgs)
+set(CMAKE_CXX_STANDARD 17)
 
 find_package(ament_cmake REQUIRED)
 find_package(grid_map_cmake_helpers REQUIRED)
