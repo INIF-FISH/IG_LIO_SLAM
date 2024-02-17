@@ -53,6 +53,7 @@ find_package(grid_map_msgs REQUIRED)
 find_package(grid_map_core REQUIRED)
 find_package(grid_map_ros REQUIRED)
 find_package(grid_map_pcl REQUIRED)
+find_package(filters REQUIRED)
 
 # PCL
 # file(GLOB PCL_LIBRARIES /usr/local/lib/libpcl_*)
@@ -73,7 +74,8 @@ set(dependencies
   GTSAM
   grid_map_core
   grid_map_ros
-  grid_map_pcl)
+  grid_map_pcl
+  filters)
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/include

@@ -29,16 +29,16 @@ def generate_launch_description():
                 output='screen',
                 parameters=[
                     {'do_bias_estimation': True},
-                    {'do_adaptive_gain': True},
+                    {'do_adaptive_gain': False},
                     {'use_mag': False},
-                    {'gain_acc': 0.01},
-                    {'gain_mag': 0.01},
+                    {'gain_acc': 0.001},
+                    {'gain_mag': 0.001},
                 ],
             )
 
     ld = LaunchDescription()
 
-    ld.add_action(ig_lio_c_node)
     ld.add_action(imu_complementary_filter_node)
+    ld.add_action(ig_lio_c_node)
 
     return ld

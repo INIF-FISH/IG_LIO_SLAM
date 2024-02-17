@@ -36,6 +36,7 @@
 #include <grid_map_ros/GridMapRosConverter.hpp>
 #include <grid_map_pcl/GridMapPclLoader.hpp>
 #include <grid_map_pcl/helpers.hpp>
+#include <filters/filter_chain.hpp>
 
 #include "./ig_lio_c/map_builder/iglio_builder.h"
 #include "./ig_lio_c/localizer/icp_localizer.h"
@@ -45,33 +46,6 @@ namespace IG_LIO
     using namespace std::chrono;
     using std::placeholders::_1;
     namespace gm = ::grid_map::grid_map_pcl;
-
-    class ZaxisPriorFactor : public gtsam::NoiseModelFactor1<gtsam::Pose3>
-    {
-        double z_;
-
-    public:
-        ZaxisPriorFactor(gtsam::Key key, const gtsam::SharedNoiseModel &noise, double z)
-            : gtsam::NoiseModelFactor1<gtsam::Pose3>(noise, key), z_(z)
-        {
-        }
-
-        virtual ~ZaxisPriorFactor()
-        {
-        }
-
-        virtual gtsam::Vector evaluateError(const gtsam::Pose3 &p, boost::optional<gtsam::Matrix &> H = boost::none) const
-        {
-            auto z = p.translation()(2);
-            if (H)
-            {
-                gtsam::Matrix Jac = gtsam::Matrix::Zero(1, 6);
-                Jac << 0.0, 0.0, 0.0, 0.0, 0.0, 1.0;
-                (*H) = Jac;
-            }
-            return gtsam::Vector1(z - z_);
-        }
-    };
 
     struct LoopPair
     {
@@ -461,7 +435,6 @@ namespace IG_LIO
         std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_br_;
         pcl::PCDWriter writer_;
         std::shared_ptr<grid_map::GridMapPclLoader> gridMapPclLoader;
-
 
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr local_cloud_pub_;

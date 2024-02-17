@@ -245,11 +245,8 @@ namespace IG_LIO
 
     void MapBuilderNode::publishLocalCloudAndGridMap(const sensor_msgs::msg::PointCloud2 &cloud_to_pub)
     {
-        if (local_cloud_pub_->get_subscription_count() == 0)
-            return;
-        if (local_grid_map_pub_->get_subscription_count() == 0)
-            return;
-        local_cloud_pub_->publish(cloud_to_pub);
+        if (local_cloud_pub_->get_subscription_count() != 0)
+            local_cloud_pub_->publish(cloud_to_pub);
         pcl::PointCloud<pcl::PointXYZ> in_cloud;
         pcl::fromROSMsg(cloud_to_pub, in_cloud);
         pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud_ptr = in_cloud.makeShared();
@@ -260,8 +257,11 @@ namespace IG_LIO
         grid_map::GridMap gridMap = gridMapPclLoader->getGridMap();
         gridMap.setFrameId("map");
         gridMap.setTimestamp(this->get_clock()->now().nanoseconds());
-        auto msg = grid_map::GridMapRosConverter::toMessage(gridMap);
-        local_grid_map_pub_->publish(std::move(msg));
+        if (local_grid_map_pub_->get_subscription_count() != 0)
+        {
+            auto msg = grid_map::GridMapRosConverter::toMessage(gridMap);
+            local_grid_map_pub_->publish(std::move(msg));
+        }
     }
 
     void MapBuilderNode::publishBaseLink()
