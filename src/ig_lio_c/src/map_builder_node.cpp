@@ -425,8 +425,6 @@ void signalHandler(int signum)
 
 int main(int argc, char **argv)
 {
-    std::cout.fill('0');
-    std::cout.width(8);
     signal(SIGINT, signalHandler);
     rclcpp::init(argc, argv);
     auto node = std::make_shared<IG_LIO::MapBuilderNode>();
