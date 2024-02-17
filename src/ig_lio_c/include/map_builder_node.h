@@ -31,6 +31,12 @@
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
+#include <grid_map_msgs/msg/grid_map.hpp>
+#include <grid_map_core/GridMap.hpp>
+#include <grid_map_ros/GridMapRosConverter.hpp>
+#include <grid_map_pcl/GridMapPclLoader.hpp>
+#include <grid_map_pcl/helpers.hpp>
+
 #include "./ig_lio_c/map_builder/iglio_builder.h"
 #include "./ig_lio_c/localizer/icp_localizer.h"
 
@@ -38,6 +44,7 @@ namespace IG_LIO
 {
     using namespace std::chrono;
     using std::placeholders::_1;
+    namespace gm = ::grid_map::grid_map_pcl;
 
     class ZaxisPriorFactor : public gtsam::NoiseModelFactor1<gtsam::Pose3>
     {
@@ -427,7 +434,7 @@ namespace IG_LIO
         void init();
         void addKeyPose();
         void publishBodyCloud(const sensor_msgs::msg::PointCloud2 &cloud_to_pub);
-        void publishLocalCloud(const sensor_msgs::msg::PointCloud2 &cloud_to_pub);
+        void publishLocalCloudAndGridMap(const sensor_msgs::msg::PointCloud2 &cloud_to_pub);
         void publishOdom(const nav_msgs::msg::Odometry &odom_to_pub);
         void publishBaseLink();
         void publishLocalPath();
@@ -453,9 +460,12 @@ namespace IG_LIO
         std::shared_ptr<tf2_ros::TransformBroadcaster> br_;
         std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_br_;
         pcl::PCDWriter writer_;
+        std::shared_ptr<grid_map::GridMapPclLoader> gridMapPclLoader;
+
 
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr local_cloud_pub_;
+        rclcpp::Publisher<grid_map_msgs::msg::GridMap>::SharedPtr local_grid_map_pub_;
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr body_cloud_pub_;
         rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr loop_mark_pub_;
         rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr local_path_pub_;

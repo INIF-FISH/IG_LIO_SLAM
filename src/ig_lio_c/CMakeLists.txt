@@ -49,6 +49,10 @@ find_package(Eigen3 REQUIRED)
 find_package(GTSAM REQUIRED)
 find_package(Sophus REQUIRED)
 find_package(PCL REQUIRED)
+find_package(grid_map_msgs REQUIRED)
+find_package(grid_map_core REQUIRED)
+find_package(grid_map_ros REQUIRED)
+find_package(grid_map_pcl REQUIRED)
 
 # PCL
 # file(GLOB PCL_LIBRARIES /usr/local/lib/libpcl_*)
@@ -64,8 +68,12 @@ set(dependencies
   nav_msgs
   livox_ros_driver2
   geometry_msgs
+  grid_map_msgs
   visualization_msgs
-  GTSAM)
+  GTSAM
+  grid_map_core
+  grid_map_ros
+  grid_map_pcl)
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/include

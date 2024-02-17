@@ -80,6 +80,7 @@
         "valarray": "cpp",
         "variant": "cpp",
         "*.ipp": "cpp",
-        "numericaldiff": "cpp"
+        "numericaldiff": "cpp",
+        "slist": "cpp"
     }
 }

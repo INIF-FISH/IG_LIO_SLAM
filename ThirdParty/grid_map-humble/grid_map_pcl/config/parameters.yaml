@@ -10,7 +10,7 @@ pcl_grid_map_extraction:
       p: 0.0
       y: 0.0
   cluster_extraction:
-    cluster_tolerance: 0.05
+    cluster_tolerance: 0.5
     min_num_points: 4
     max_num_points: 1000000
   outlier_removal:
@@ -24,11 +24,11 @@ pcl_grid_map_extraction:
       y: 0.02
       z: 0.02 
   grid_map:
-    min_num_points_per_cell: 4
+    min_num_points_per_cell: 1
     resolution: 0.1
     # 0: Smallest value among the average values ​​of each cluster
     # 1: Mean value of the cluster with the most points
-    height_type: 0
+    height_type: 1
     # For height_type 1
     height_thresh: 1.0
 

@@ -9,6 +9,8 @@
         "/opt/ros/galactic/include/**",
         "/usr/include/**",
         "/usr/local/include/**",
+        "install/**",
+        "/opt/ros/galactic/opt/yaml_cpp_vendor/include/**",
         "ThirdParty/ws_livox/install/livox_ros_driver2/include/**"
       ],
       "name": "ROS",
