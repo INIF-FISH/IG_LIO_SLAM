@@ -5,38 +5,34 @@ map_builder_node:
     body_frame: body
     imu_topic: /imu/data
     livox_topic: /livox/lidar
-
-    local_rate: 20.0
+    local_rate: 200.0
     loop_rate: 1.0
-
     lio_builder:
-      scan_resolution: 0.3
-      map_resolution: 0.3
-      point2plane_gain: 100.0
-      gicp_constraint_gain: 100.0
-      map_capacity: 5000000
-      grid_capacity: 20
-      extrinsic_est_en: false
-      align_gravity: true
-      near_mode: 1
-      acc_cov: 0.1
-      gyr_cov: 0.1
-      ba_cov: 0.00001
-      bg_cov: 0.00001
-      imu_ext_rot: [1, 0, 0, 0, 1, 0, 0, 0, 1]
-      imu_ext_pos: [-0.011, -0.02329, 0.04412]
-
+        scan_resolution: 0.3
+        map_resolution: 0.3
+        point2plane_gain: 100.0
+        gicp_constraint_gain: 100.0
+        map_capacity: 5000000
+        grid_capacity: 20
+        extrinsic_est_en: false
+        align_gravity: true
+        near_mode: 1
+        acc_cov: 0.2
+        gyr_cov: 0.2
+        ba_cov: 0.00002
+        bg_cov: 0.00002
+        imu_ext_rot: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+        imu_ext_pos: [-0.011, -0.02329, 0.04412]
     lio_slam:
-      ext_r: [0., 0., 3.14]
-      ext_t: [15.051948, 0., 0.]
-
+        ext_r: [0., 0., 3.14]
+        ext_t: [0.0151, 0., 0.]
     loop_closure:
-      activate: true
-      rad_thresh: 0.2
-      dist_thresh: 1.0
-      time_thresh: 30.0
-      loop_pose_search_radius: 15.0
-      loop_pose_index_thresh: 25
-      submap_resolution: 0.5
-      submap_search_num: 25
-      loop_icp_thresh: 0.3
+        activate: true
+        rad_thresh: 0.2
+        dist_thresh: 1.0
+        time_thresh: 30.0
+        loop_pose_search_radius: 15.0
+        loop_pose_index_thresh: 25
+        submap_resolution: 0.3
+        submap_search_num: 25
+        loop_icp_thresh: 0.3

@@ -38,6 +38,8 @@
 #include <grid_map_pcl/helpers.hpp>
 #include <filters/filter_chain.hpp>
 
+#include <ig_lio_c_msgs/srv/save_map.hpp>
+
 #include "./ig_lio_c/map_builder/iglio_builder.h"
 #include "./ig_lio_c/localizer/icp_localizer.h"
 
@@ -45,6 +47,7 @@ namespace IG_LIO
 {
     using namespace std::chrono;
     using std::placeholders::_1;
+    using std::placeholders::_2;
     namespace gm = ::grid_map::grid_map_pcl;
 
     struct LoopPair
@@ -106,14 +109,24 @@ namespace IG_LIO
         double submap_resolution = 0.2;
         int submap_search_num = 20;
         double loop_icp_thresh = 0.3;
-        bool activate = true;
+        bool activate = false;
     };
 
     class LoopClosureThread
     {
     public:
+        LoopClosureThread()
+        {
+            loop_params_ = std::make_shared<LoopParams>();
+        }
+
+        ~LoopClosureThread()
+        {
+        }
+
         void init()
         {
+            
             gtsam::ISAM2Params isam2_params;
             isam2_params.relinearizeThreshold = 0.01;
             isam2_params.relinearizeSkip = 1;
@@ -121,9 +134,9 @@ namespace IG_LIO
             kdtree_history_poses_.reset(new pcl::KdTreeFLANN<pcl::PointXYZ>);
             cloud_history_poses_.reset(new pcl::PointCloud<pcl::PointXYZ>);
             sub_map_downsize_filter_.reset(new pcl::VoxelGrid<IG_LIO::PointType>);
-            sub_map_downsize_filter_->setLeafSize(loop_params_.submap_resolution,
-                                                  loop_params_.submap_resolution,
-                                                  loop_params_.submap_resolution);
+            sub_map_downsize_filter_->setLeafSize(loop_params_->submap_resolution,
+                                                  loop_params_->submap_resolution,
+                                                  loop_params_->submap_resolution);
 
             icp_.reset(new pcl::IterativeClosestPoint<IG_LIO::PointType, IG_LIO::PointType>);
             icp_->setMaxCorrespondenceDistance(100);
@@ -144,7 +157,7 @@ namespace IG_LIO
         {
             rate_ = rate;
         }
-        LoopParams &mutableParams()
+        std::shared_ptr<LoopParams> mutableParams()
         {
             return loop_params_;
         }
@@ -183,9 +196,9 @@ namespace IG_LIO
                     is_alive = !terminate_flag;
                     break;
                 }
-                if (!loop_params_.activate)
+                if (!loop_params_->activate)
                     continue;
-                if (shared_data_->key_poses.size() < loop_params_.loop_pose_index_thresh)
+                if (shared_data_->key_poses.size() < loop_params_->loop_pose_index_thresh)
                     continue;
                 if (!shared_data_->key_pose_added)
                     continue;
@@ -213,7 +226,7 @@ namespace IG_LIO
 
         std::shared_ptr<rclcpp::Rate> rate_;
 
-        LoopParams loop_params_;
+        std::shared_ptr<LoopParams> loop_params_;
 
         std::vector<Pose6D> temp_poses_;
 
@@ -263,12 +276,12 @@ namespace IG_LIO
             kdtree_history_poses_->setInputCloud(cloud_history_poses_);
             std::vector<int> ids;
             std::vector<float> sqdists;
-            kdtree_history_poses_->radiusSearch(cloud_history_poses_->back(), loop_params_.loop_pose_search_radius, ids, sqdists, 0);
+            kdtree_history_poses_->radiusSearch(cloud_history_poses_->back(), loop_params_->loop_pose_search_radius, ids, sqdists, 0);
 
             for (int i = 0; i < ids.size(); i++)
             {
                 int id = ids[i];
-                if (std::abs(temp_poses_[id].time - temp_poses_.back().time) > loop_params_.time_thresh && std::abs(cur_index - id) >= loop_params_.loop_pose_index_thresh)
+                if (std::abs(temp_poses_[id].time - temp_poses_.back().time) > loop_params_->time_thresh && std::abs(cur_index - id) >= loop_params_->loop_pose_index_thresh)
                 {
                     pre_index = id;
                     break;
@@ -278,7 +291,7 @@ namespace IG_LIO
                 return;
 
             IG_LIO::PointCloudXYZI::Ptr cur_cloud = getSubMaps(temp_poses_, shared_data_->cloud_history, cur_index, 0);
-            IG_LIO::PointCloudXYZI::Ptr sub_maps = getSubMaps(temp_poses_, shared_data_->cloud_history, pre_index, loop_params_.submap_search_num);
+            IG_LIO::PointCloudXYZI::Ptr sub_maps = getSubMaps(temp_poses_, shared_data_->cloud_history, pre_index, loop_params_->submap_search_num);
 
             icp_->setInputSource(cur_cloud);
             icp_->setInputTarget(sub_maps);
@@ -289,7 +302,7 @@ namespace IG_LIO
 
             float score = icp_->getFitnessScore();
 
-            if (!icp_->hasConverged() || score > loop_params_.loop_icp_thresh)
+            if (!icp_->hasConverged() || score > loop_params_->loop_icp_thresh)
                 return;
 
             std::cout << "Detected LOOP: " << pre_index << " " << cur_index << " " << score << std::endl;
@@ -390,6 +403,111 @@ namespace IG_LIO
         }
     };
 
+    // class LocalizerThread
+    // {
+    // public:
+    //     LocalizerThread() {}
+
+    //     void setSharedDate(std::shared_ptr<SharedData> shared_data)
+    //     {
+    //         shared_data_ = shared_data;
+    //     }
+
+    //     void setRate(double rate)
+    //     {
+    //         rate_ = std::make_shared<rclcpp::Rate>(rate);
+    //     }
+    //     void setRate(std::shared_ptr<rclcpp::Rate> rate)
+    //     {
+    //         rate_ = rate;
+    //     }
+    //     void setLocalizer(std::shared_ptr<IG_LIO::IcpLocalizer> localizer)
+    //     {
+    //         icp_localizer_ = localizer;
+    //     }
+
+    //     void operator()()
+    //     {
+    //         current_cloud_.reset(new pcl::PointCloud<pcl::PointXYZI>);
+
+    //         while (is_alive)
+    //         {
+    //             rate_->sleep();
+    //             if (terminate_flag)
+    //             {
+    //                 is_alive = !terminate_flag;
+    //                 break;
+    //             }    
+    //             if (shared_data_->halt_flag)
+    //                 continue;
+    //             if (!shared_data_->localizer_activate)
+    //                 continue;
+    //             if (!shared_data_->pose_updated)
+    //                 continue;
+    //             gloabl_pose_.setIdentity();
+    //             bool rectify = false;
+    //             Eigen::Matrix4d init_guess;
+    //             {
+    //                 std::lock_guard<std::mutex> lock(shared_data_->main_mutex);
+    //                 shared_data_->pose_updated = false;
+    //                 init_guess.setIdentity();
+    //                 local_rot_ = shared_data_->local_rot;
+    //                 local_pos_ = shared_data_->local_pos;
+    //                 init_guess.block<3, 3>(0, 0) = shared_data_->offset_rot * local_rot_;
+    //                 init_guess.block<3, 1>(0, 3) = shared_data_->offset_rot * local_pos_ + shared_data_->offset_pos;
+    //                 pcl::copyPointCloud(*shared_data_->cloud, *current_cloud_);
+    //             }
+
+    //             if (shared_data_->service_called)
+    //             {
+    //                 std::lock_guard<std::mutex> lock(shared_data_->service_mutex);
+    //                 shared_data_->service_called = false;
+    //                 icp_localizer_->init(shared_data_->map_path, false);
+    //                 gloabl_pose_ = icp_localizer_->multi_align_sync(current_cloud_, shared_data_->initial_guess);
+    //                 if (icp_localizer_->isSuccess())
+    //                 {
+    //                     rectify = true;
+    //                     shared_data_->localizer_activate = true;
+    //                     shared_data_->service_success = true;
+    //                 }
+
+    //                 else
+    //                 {
+    //                     rectify = false;
+    //                     shared_data_->localizer_activate = false;
+    //                     shared_data_->service_success = false;
+    //                 }
+    //             }
+    //             else
+    //             {
+    //                 gloabl_pose_ = icp_localizer_->align(current_cloud_, init_guess);
+    //                 if (icp_localizer_->isSuccess())
+    //                     rectify = true;
+    //                 else
+    //                     rectify = false;
+    //             }
+
+    //             if (rectify)
+    //             {
+    //                 std::lock_guard<std::mutex> lock(shared_data_->main_mutex);
+    //                 shared_data_->offset_rot = gloabl_pose_.block<3, 3>(0, 0) * local_rot_.transpose();
+    //                 shared_data_->offset_pos = -gloabl_pose_.block<3, 3>(0, 0) * local_rot_.transpose() * local_pos_ + gloabl_pose_.block<3, 1>(0, 3);
+    //             }
+    //         }
+    //     }
+
+    // private:
+    //     bool is_alive = true;
+    //     bool terminate_flag = false;
+    //     std::shared_ptr<SharedData> shared_data_;
+    //     std::shared_ptr<IG_LIO::IcpLocalizer> icp_localizer_;
+    //     std::shared_ptr<rclcpp::Rate> rate_;
+    //     pcl::PointCloud<pcl::PointXYZI>::Ptr current_cloud_;
+    //     Eigen::Matrix4d gloabl_pose_;
+    //     Eigen::Matrix3d local_rot_;
+    //     Eigen::Vector3d local_pos_;
+    // };
+
     class MapBuilderNode : public rclcpp::Node
     {
     public:
@@ -405,6 +523,7 @@ namespace IG_LIO
         void param_respond();
         void initSubscribers();
         void initPublishers();
+        void initSerivces();
         void init();
         void addKeyPose();
         void publishBodyCloud(const sensor_msgs::msg::PointCloud2 &cloud_to_pub);
@@ -414,6 +533,8 @@ namespace IG_LIO
         void publishLocalPath();
         void publishGlobalPath();
         void publishLoopMark();
+        void saveMapCallBack(const ig_lio_c_msgs::srv::SaveMap::Request::SharedPtr request,
+                             const ig_lio_c_msgs::srv::SaveMap::Response::SharedPtr response);
 
     private:
         std::string global_frame_;
@@ -445,6 +566,8 @@ namespace IG_LIO
         rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr global_path_pub_;
         rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
         rclcpp::Subscription<livox_ros_driver2::msg::CustomMsg>::SharedPtr livox_sub_;
+        rclcpp::CallbackGroup::SharedPtr callback_group_savemap;
+        rclcpp::Service<ig_lio_c_msgs::srv::SaveMap>::SharedPtr Savemap_Server;
     };
 } // namespace IG_LIO
 

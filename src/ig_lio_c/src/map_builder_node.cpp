@@ -8,6 +8,7 @@ namespace IG_LIO
         param_respond();
         initSubscribers();
         initPublishers();
+        initSerivces();
         init();
     }
 
@@ -34,42 +35,42 @@ namespace IG_LIO
         this->get_parameter("loop_rate", loop_rate);
         local_rate_ = std::make_shared<rclcpp::Rate>(local_rate);
         loop_rate_ = std::make_shared<rclcpp::Rate>(loop_rate);
-        this->declare_parameter<double>("lio_builder/scan_resolution", 0.3);
-        this->declare_parameter<double>("lio_builder/map_resolution", 0.3);
-        this->declare_parameter<double>("lio_builder/point2plane_gain", 100.0);
-        this->declare_parameter<double>("lio_builder/gicp_constraint_gain", 100.0);
-        this->get_parameter("lio_builder/scan_resolution", lio_params_.scan_resolution);
-        this->get_parameter("lio_builder/map_resolution", lio_params_.map_resolution);
-        this->get_parameter("lio_builder/point2plane_gain", lio_params_.point2plane_gain);
-        this->get_parameter("lio_builder/gicp_constraint_gain", lio_params_.gicp_constraint_gain);
+        this->declare_parameter<double>("lio_builder.scan_resolution", 0.3);
+        this->declare_parameter<double>("lio_builder.map_resolution", 0.3);
+        this->declare_parameter<double>("lio_builder.point2plane_gain", 100.0);
+        this->declare_parameter<double>("lio_builder.gicp_constraint_gain", 100.0);
+        this->get_parameter("lio_builder.scan_resolution", lio_params_.scan_resolution);
+        this->get_parameter("lio_builder.map_resolution", lio_params_.map_resolution);
+        this->get_parameter("lio_builder.point2plane_gain", lio_params_.point2plane_gain);
+        this->get_parameter("lio_builder.gicp_constraint_gain", lio_params_.gicp_constraint_gain);
         int map_capacity, grid_capacity;
-        this->declare_parameter<int>("lio_builder/map_capacity", 5000000);
-        this->declare_parameter<int>("lio_builder/grid_capacity", 20);
-        this->get_parameter("lio_builder/map_capacity", map_capacity);
-        this->get_parameter("lio_builder/grid_capacity", grid_capacity);
+        this->declare_parameter<int>("lio_builder.map_capacity", 5000000);
+        this->declare_parameter<int>("lio_builder.grid_capacity", 20);
+        this->get_parameter("lio_builder.map_capacity", map_capacity);
+        this->get_parameter("lio_builder.grid_capacity", grid_capacity);
         lio_params_.map_capacity = static_cast<size_t>(map_capacity);
         lio_params_.grid_capacity = static_cast<size_t>(grid_capacity);
-        this->declare_parameter<bool>("lio_builder/align_gravity", true);
-        this->declare_parameter<bool>("lio_builder/extrinsic_est_en", false);
+        this->declare_parameter<bool>("lio_builder.align_gravity", true);
+        this->declare_parameter<bool>("lio_builder.extrinsic_est_en", false);
         std::vector<double> pre_rot = {1, 0, 0, 0, 1, 0, 0, 0, 1};
         std::vector<double> pre_pos = {-0.011, -0.02329, 0.04412};
-        this->declare_parameter<double>("lio_builder/acc_cov", 0.1);
-        this->declare_parameter<double>("lio_builder/gyr_cov", 0.1);
-        this->declare_parameter<double>("lio_builder/ba_cov", 0.00001);
-        this->declare_parameter<double>("lio_builder/bg_cov", 0.00001);
-        this->declare_parameter<std::vector<double>>("lio_builder/imu_ext_rot", pre_rot);
-        this->declare_parameter<std::vector<double>>("lio_builder/imu_ext_pos", pre_pos);
-        this->get_parameter("lio_builder/acc_cov", lio_params_.imu_acc_cov);
-        this->get_parameter("lio_builder/gyr_cov", lio_params_.imu_gyro_cov);
-        this->get_parameter("lio_builder/ba_cov", lio_params_.imu_acc_bias_cov);
-        this->get_parameter("lio_builder/bg_cov", lio_params_.imu_gyro_bias_cov);
-        this->get_parameter("lio_builder/align_gravity", lio_params_.align_gravity);
-        this->get_parameter("lio_builder/extrinsic_est_en", lio_params_.extrinsic_est_en);
-        this->get_parameter("lio_builder/imu_ext_rot", lio_params_.imu_ext_rot);
-        this->get_parameter("lio_builder/imu_ext_pos", lio_params_.imu_ext_pos);
+        this->declare_parameter<double>("lio_builder.acc_cov", 0.1);
+        this->declare_parameter<double>("lio_builder.gyr_cov", 0.1);
+        this->declare_parameter<double>("lio_builder.ba_cov", 0.00001);
+        this->declare_parameter<double>("lio_builder.bg_cov", 0.00001);
+        this->declare_parameter<std::vector<double>>("lio_builder.imu_ext_rot", pre_rot);
+        this->declare_parameter<std::vector<double>>("lio_builder.imu_ext_pos", pre_pos);
+        this->get_parameter("lio_builder.acc_cov", lio_params_.imu_acc_cov);
+        this->get_parameter("lio_builder.gyr_cov", lio_params_.imu_gyro_cov);
+        this->get_parameter("lio_builder.ba_cov", lio_params_.imu_acc_bias_cov);
+        this->get_parameter("lio_builder.bg_cov", lio_params_.imu_gyro_bias_cov);
+        this->get_parameter("lio_builder.align_gravity", lio_params_.align_gravity);
+        this->get_parameter("lio_builder.extrinsic_est_en", lio_params_.extrinsic_est_en);
+        this->get_parameter("lio_builder.imu_ext_rot", lio_params_.imu_ext_rot);
+        this->get_parameter("lio_builder.imu_ext_pos", lio_params_.imu_ext_pos);
         int mode;
-        this->declare_parameter<int>("lio_builder/near_mode", 2);
-        this->get_parameter("lio_builder/near_mode", mode);
+        this->declare_parameter<int>("lio_builder.near_mode", 2);
+        this->get_parameter("lio_builder.near_mode", mode);
         switch (mode)
         {
         case 1:
@@ -91,34 +92,33 @@ namespace IG_LIO
         }
         std::vector<double> pre_ext_r = {3.14, 0., 0.};
         std::vector<double> pre_ext_t = {-0.0151, 0., 0.};
-        this->declare_parameter<std::vector<double>>("lio_slam/ext_r", pre_ext_r);
-        this->declare_parameter<std::vector<double>>("lio_slam/ext_t", pre_ext_t);
-        this->get_parameter("lio_slam/ext_r", lio_params_.ext_r);
-        this->get_parameter("lio_slam/ext_t", lio_params_.ext_t);
-        this->declare_parameter<bool>("loop_closure/activate", true);
-        this->declare_parameter<double>("loop_closure/rad_thresh", 0.4);
-        this->declare_parameter<double>("loop_closure/dist_thresh", 2.5);
-        this->declare_parameter<double>("loop_closure/time_thresh", 30.0);
-        this->declare_parameter<double>("loop_closure/loop_pose_search_radius", 10.0);
-        this->declare_parameter<int>("loop_closure/loop_pose_index_thresh", 5);
-        this->declare_parameter<double>("loop_closure/submap_resolution", 0.2);
-        this->declare_parameter<int>("loop_closure/submap_search_num", 20);
-        this->declare_parameter<double>("loop_closure/loop_icp_thresh", 0.3);
-        this->declare_parameter<bool>("loop_closure/z_prior", false);
-        this->get_parameter("loop_closure/activate", loop_closure_.mutableParams().activate);
-        this->get_parameter("loop_closure/rad_thresh", loop_closure_.mutableParams().rad_thresh);
-        this->get_parameter("loop_closure/dist_thresh", loop_closure_.mutableParams().dist_thresh);
-        this->get_parameter("loop_closure/time_thresh", loop_closure_.mutableParams().time_thresh);
-        this->get_parameter("loop_closure/loop_pose_search_radius", loop_closure_.mutableParams().loop_pose_search_radius);
-        this->get_parameter("loop_closure/loop_pose_index_thresh", loop_closure_.mutableParams().loop_pose_index_thresh);
-        this->get_parameter("loop_closure/submap_resolution", loop_closure_.mutableParams().submap_resolution);
-        this->get_parameter("loop_closure/submap_search_num", loop_closure_.mutableParams().submap_search_num);
-        this->get_parameter("loop_closure/loop_icp_thresh", loop_closure_.mutableParams().loop_icp_thresh);
+        this->declare_parameter<std::vector<double>>("lio_slam.ext_r", pre_ext_r);
+        this->declare_parameter<std::vector<double>>("lio_slam.ext_t", pre_ext_t);
+        this->get_parameter("lio_slam.ext_r", lio_params_.ext_r);
+        this->get_parameter("lio_slam.ext_t", lio_params_.ext_t);
+        this->declare_parameter<bool>("loop_closure.activate", false);
+        this->declare_parameter<double>("loop_closure.rad_thresh", 0.4);
+        this->declare_parameter<double>("loop_closure.dist_thresh", 2.5);
+        this->declare_parameter<double>("loop_closure.time_thresh", 30.0);
+        this->declare_parameter<double>("loop_closure.loop_pose_search_radius", 10.0);
+        this->declare_parameter<int>("loop_closure.loop_pose_index_thresh", 5);
+        this->declare_parameter<double>("loop_closure.submap_resolution", 0.2);
+        this->declare_parameter<int>("loop_closure.submap_search_num", 20);
+        this->declare_parameter<double>("loop_closure.loop_icp_thresh", 0.3);
+        this->get_parameter("loop_closure.activate", loop_closure_.mutableParams()->activate);
+        this->get_parameter("loop_closure.rad_thresh", loop_closure_.mutableParams()->rad_thresh);
+        this->get_parameter("loop_closure.dist_thresh", loop_closure_.mutableParams()->dist_thresh);
+        this->get_parameter("loop_closure.time_thresh", loop_closure_.mutableParams()->time_thresh);
+        this->get_parameter("loop_closure.loop_pose_search_radius", loop_closure_.mutableParams()->loop_pose_search_radius);
+        this->get_parameter("loop_closure.loop_pose_index_thresh", loop_closure_.mutableParams()->loop_pose_index_thresh);
+        this->get_parameter("loop_closure.submap_resolution", loop_closure_.mutableParams()->submap_resolution);
+        this->get_parameter("loop_closure.submap_search_num", loop_closure_.mutableParams()->submap_search_num);
+        this->get_parameter("loop_closure.loop_icp_thresh", loop_closure_.mutableParams()->loop_icp_thresh);
     }
 
     void MapBuilderNode::initSubscribers()
     {
-        rclcpp::QoS qos(1);
+        rclcpp::QoS qos(1000);
         qos.reliability();
         qos.keep_last(1);
         imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(imu_data_.topic, qos, std::bind(&ImuData::callback, &imu_data_, _1));
@@ -127,7 +127,7 @@ namespace IG_LIO
 
     void MapBuilderNode::initPublishers()
     {
-        rclcpp::QoS qos(1);
+        rclcpp::QoS qos(1000);
         qos.reliability();
         qos.keep_last(1);
 
@@ -139,6 +139,15 @@ namespace IG_LIO
         loop_mark_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("loop_mark", qos);
         local_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("local_path", qos);
         global_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("global_path", qos);
+    }
+
+    void MapBuilderNode::initSerivces()
+    {
+        callback_group_savemap = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+        Savemap_Server = this->create_service<ig_lio_c_msgs::srv::SaveMap>("SaveMap",
+                                                                           std::bind(&MapBuilderNode::saveMapCallBack, this, _1, _2),
+                                                                           rmw_qos_profile_services_default,
+                                                                           callback_group_savemap);
     }
 
     void MapBuilderNode::init()
@@ -223,10 +232,10 @@ namespace IG_LIO
         Eigen::Matrix3d diff_rot = last_key_pose.local_rot.transpose() * current_state_.rot;
         Eigen::Vector3d diff_pose = last_key_pose.local_rot.transpose() * (current_state_.pos - last_key_pose.local_pos);
         Eigen::Vector3d rpy = rotate2rpy(diff_rot);
-        if (diff_pose.norm() > loop_closure_.mutableParams().dist_thresh ||
-            std::abs(rpy(0)) > loop_closure_.mutableParams().rad_thresh ||
-            std::abs(rpy(1)) > loop_closure_.mutableParams().rad_thresh ||
-            std::abs(rpy(2)) > loop_closure_.mutableParams().rad_thresh)
+        if (diff_pose.norm() > loop_closure_.mutableParams()->dist_thresh ||
+            std::abs(rpy(0)) > loop_closure_.mutableParams()->rad_thresh ||
+            std::abs(rpy(1)) > loop_closure_.mutableParams()->rad_thresh ||
+            std::abs(rpy(2)) > loop_closure_.mutableParams()->rad_thresh)
         {
             std::lock_guard<std::mutex> lock(shared_data_->mutex);
             shared_data_->key_poses.emplace_back(idx, current_time_, current_state_.rot, current_state_.pos);
@@ -412,6 +421,32 @@ namespace IG_LIO
         marker_array.markers.push_back(nodes_marker);
         marker_array.markers.push_back(edges_marker);
         loop_mark_pub_->publish(marker_array);
+    }
+
+    void MapBuilderNode::saveMapCallBack(const ig_lio_c_msgs::srv::SaveMap::Request::SharedPtr request,
+                                         const ig_lio_c_msgs::srv::SaveMap::Response::SharedPtr response)
+    {
+        std::string file_path = request->save_path;
+        IG_LIO::PointCloudXYZI::Ptr cloud(new IG_LIO::PointCloudXYZI);
+        for (Pose6D &p : shared_data_->key_poses)
+        {
+            IG_LIO::PointCloudXYZI::Ptr temp_cloud(new IG_LIO::PointCloudXYZI);
+            pcl::transformPointCloud(*shared_data_->cloud_history[p.index],
+                                     *temp_cloud,
+                                     p.global_pos,
+                                     Eigen::Quaterniond(p.global_rot));
+            *cloud += *temp_cloud;
+        }
+        if (cloud->empty())
+        {
+            response->status = false;
+            response->message = "Empty cloud!";
+            RCLCPP_WARN(this->get_logger(), "Failed to save map !");
+        }
+        response->status = true;
+        response->message = "Save map success!";
+        writer_.writeBinaryCompressed(file_path, *cloud);
+        RCLCPP_INFO(this->get_logger(), "Success to save map !");
     }
 } // namespace IG_LIO
 

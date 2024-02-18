@@ -11,7 +11,8 @@
         "/usr/local/include/**",
         "install/**",
         "/opt/ros/galactic/opt/yaml_cpp_vendor/include/**",
-        "ThirdParty/ws_livox/install/livox_ros_driver2/include/**"
+        "ThirdParty/ws_livox/install/livox_ros_driver2/include/**",
+        "install/ig_lio_c_msgs/include"
       ],
       "name": "ROS",
       "intelliSenseMode": "gcc-x64",

@@ -19,7 +19,7 @@ def generate_launch_description():
         executable='map_builder_node',
         name='map_builder_node',
         output='screen',
-        parameters=[config]
+        parameters=[config],
     )
 
     imu_complementary_filter_node = Node(
@@ -29,10 +29,10 @@ def generate_launch_description():
                 output='screen',
                 parameters=[
                     {'do_bias_estimation': True},
-                    {'do_adaptive_gain': False},
+                    {'do_adaptive_gain': True},
                     {'use_mag': False},
-                    {'gain_acc': 0.001},
-                    {'gain_mag': 0.001},
+                    {'gain_acc': 0.01},
+                    {'gain_mag': 0.01},
                 ],
             )
 

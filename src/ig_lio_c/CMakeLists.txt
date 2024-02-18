@@ -54,10 +54,7 @@ find_package(grid_map_core REQUIRED)
 find_package(grid_map_ros REQUIRED)
 find_package(grid_map_pcl REQUIRED)
 find_package(filters REQUIRED)
-
-# PCL
-# file(GLOB PCL_LIBRARIES /usr/local/lib/libpcl_*)
-# set(PCL_INCLUDE_DIRS /usr/local/include/pcl-1.12)
+find_package(ig_lio_c_msgs REQUIRED)
 
 set(dependencies
   rclcpp
@@ -75,7 +72,9 @@ set(dependencies
   grid_map_core
   grid_map_ros
   grid_map_pcl
-  filters)
+  filters
+  ig_lio_c_msgs
+)
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/include
@@ -136,7 +135,6 @@ install(TARGETS
 install(TARGETS
   map_builder_node
 
-  # testing
   DESTINATION lib/${PROJECT_NAME}
 )
 
