@@ -6,33 +6,50 @@ map_builder_node:
     imu_topic: /imu/data
     livox_topic: /livox/lidar
     local_rate: 200.0
-    loop_rate: 1.0
+    loop_rate_lc: 1.0
+    loop_rate_l: 1.0
+
     lio_builder:
-        scan_resolution: 0.3
-        map_resolution: 0.3
-        point2plane_gain: 100.0
-        gicp_constraint_gain: 100.0
-        map_capacity: 5000000
-        grid_capacity: 20
-        extrinsic_est_en: false
-        align_gravity: true
-        near_mode: 1
-        acc_cov: 0.2
-        gyr_cov: 0.2
-        ba_cov: 0.00002
-        bg_cov: 0.00002
-        imu_ext_rot: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
-        imu_ext_pos: [-0.011, -0.02329, 0.04412]
+      scan_resolution: 0.3
+      map_resolution: 0.3
+      point2plane_gain: 100.0
+      gicp_constraint_gain: 100.0
+      map_capacity: 5000000
+      grid_capacity: 20
+      extrinsic_est_en: false
+      align_gravity: true
+      near_mode: 1
+      acc_cov: 0.2
+      gyr_cov: 0.2
+      ba_cov: 0.00002
+      bg_cov: 0.00002
+      imu_ext_rot: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+      imu_ext_pos: [-0.011, -0.02329, 0.04412]
+
     lio_slam:
-        ext_r: [0., 0., 3.14]
-        ext_t: [0.0151, 0., 0.]
+      ext_r: [0., 0., 3.14]
+      ext_t: [0.0151, 0., 0.]
+
     loop_closure:
-        activate: true
-        rad_thresh: 0.2
-        dist_thresh: 1.0
-        time_thresh: 30.0
-        loop_pose_search_radius: 15.0
-        loop_pose_index_thresh: 25
-        submap_resolution: 0.3
-        submap_search_num: 25
-        loop_icp_thresh: 0.3
+      activate: true
+      rad_thresh: 0.2
+      dist_thresh: 1.0
+      time_thresh: 30.0
+      loop_pose_search_radius: 15.0
+      loop_pose_index_thresh: 25
+      submap_resolution: 0.3
+      submap_search_num: 25
+      loop_icp_thresh: 0.3
+
+    localizer:
+      reloc_on_init: false
+      pcd_path: ""
+      xyz_rpy: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      refine_resolution: 0.15
+      rough_resolution: 0.3
+      refine_iter: 5.
+      rough_iter: 10.
+      thresh: 0.15
+      xy_offset: 1.0
+      yaw_offset: 0.
+      yaw_resolution: 0.3

@@ -28,13 +28,18 @@ namespace IG_LIO
         this->get_parameter("body_frame", body_frame_);
         this->get_parameter("imu_topic", imu_data_.topic);
         this->get_parameter("livox_topic", livox_data_.topic);
-        double local_rate, loop_rate;
+        this->declare_parameter("publish_map_cloud", false);
+        this->get_parameter("publish_map_cloud", publish_map_cloud_);
+        double local_rate, loop_rate_lc, loop_rate_l;
         this->declare_parameter<double>("local_rate", 20.0);
-        this->declare_parameter<double>("loop_rate", 1.0);
+        this->declare_parameter<double>("loop_rate_lc", 1.0);
+        this->declare_parameter<double>("loop_rate_l", 1.0);
         this->get_parameter("local_rate", local_rate);
-        this->get_parameter("loop_rate", loop_rate);
+        this->get_parameter("loop_rate_lc", loop_rate_lc);
+        this->get_parameter("loop_rate_l", loop_rate_l);
         local_rate_ = std::make_shared<rclcpp::Rate>(local_rate);
-        loop_rate_ = std::make_shared<rclcpp::Rate>(loop_rate);
+        loop_rate_lc_ = std::make_shared<rclcpp::Rate>(loop_rate_lc);
+        loop_rate_l_ = std::make_shared<rclcpp::Rate>(loop_rate_l);
         this->declare_parameter<double>("lio_builder.scan_resolution", 0.3);
         this->declare_parameter<double>("lio_builder.map_resolution", 0.3);
         this->declare_parameter<double>("lio_builder.point2plane_gain", 100.0);
@@ -105,15 +110,31 @@ namespace IG_LIO
         this->declare_parameter<double>("loop_closure.submap_resolution", 0.2);
         this->declare_parameter<int>("loop_closure.submap_search_num", 20);
         this->declare_parameter<double>("loop_closure.loop_icp_thresh", 0.3);
-        this->get_parameter("loop_closure.activate", loop_closure_.mutableParams()->activate);
-        this->get_parameter("loop_closure.rad_thresh", loop_closure_.mutableParams()->rad_thresh);
-        this->get_parameter("loop_closure.dist_thresh", loop_closure_.mutableParams()->dist_thresh);
-        this->get_parameter("loop_closure.time_thresh", loop_closure_.mutableParams()->time_thresh);
-        this->get_parameter("loop_closure.loop_pose_search_radius", loop_closure_.mutableParams()->loop_pose_search_radius);
-        this->get_parameter("loop_closure.loop_pose_index_thresh", loop_closure_.mutableParams()->loop_pose_index_thresh);
-        this->get_parameter("loop_closure.submap_resolution", loop_closure_.mutableParams()->submap_resolution);
-        this->get_parameter("loop_closure.submap_search_num", loop_closure_.mutableParams()->submap_search_num);
-        this->get_parameter("loop_closure.loop_icp_thresh", loop_closure_.mutableParams()->loop_icp_thresh);
+        this->get_parameter("loop_closure.activate", loop_closure_.mutableParams().activate);
+        this->get_parameter("loop_closure.rad_thresh", loop_closure_.mutableParams().rad_thresh);
+        this->get_parameter("loop_closure.dist_thresh", loop_closure_.mutableParams().dist_thresh);
+        this->get_parameter("loop_closure.time_thresh", loop_closure_.mutableParams().time_thresh);
+        this->get_parameter("loop_closure.loop_pose_search_radius", loop_closure_.mutableParams().loop_pose_search_radius);
+        this->get_parameter("loop_closure.loop_pose_index_thresh", loop_closure_.mutableParams().loop_pose_index_thresh);
+        this->get_parameter("loop_closure.submap_resolution", loop_closure_.mutableParams().submap_resolution);
+        this->get_parameter("loop_closure.submap_search_num", loop_closure_.mutableParams().submap_search_num);
+        this->get_parameter("loop_closure.loop_icp_thresh", loop_closure_.mutableParams().loop_icp_thresh);
+        this->declare_parameter<double>("localizer.refine_resolution", 0.15);
+        this->declare_parameter<double>("localizer.rough_resolution", 0.3);
+        this->declare_parameter<double>("localizer.refine_iter", 5.);
+        this->declare_parameter<double>("localizer.rough_iter", 10.);
+        this->declare_parameter<double>("localizer.thresh", 0.15);
+        this->declare_parameter<double>("localizer.xy_offset", 1.0);
+        this->declare_parameter<double>("localizer.yaw_offset", 0.);
+        this->declare_parameter<double>("localizer.yaw_resolution", 0.3);
+        this->get_parameter("localizer.refine_resolution", localizer_params_.refine_resolution);
+        this->get_parameter("localizer.rough_resolution", localizer_params_.rough_resolution);
+        this->get_parameter("localizer.refine_iter", localizer_params_.refine_iter);
+        this->get_parameter("localizer.rough_iter", localizer_params_.rough_iter);
+        this->get_parameter("localizer.thresh", localizer_params_.thresh);
+        this->get_parameter("localizer.xy_offset", localizer_params_.xy_offset);
+        this->get_parameter("localizer.yaw_offset", localizer_params_.yaw_offset);
+        this->get_parameter("localizer.yaw_resolution", localizer_params_.yaw_resolution);
     }
 
     void MapBuilderNode::initSubscribers()
@@ -135,6 +156,7 @@ namespace IG_LIO
         local_grid_map_pub_ = this->create_publisher<grid_map_msgs::msg::GridMap>(
             "grid_map_from_raw_pointcloud", qos);
         body_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud", qos);
+        map_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("map_cloud", qos);
         odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("slam_odom", qos);
         loop_mark_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("loop_mark", qos);
         local_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("local_path", qos);
@@ -143,11 +165,12 @@ namespace IG_LIO
 
     void MapBuilderNode::initSerivces()
     {
-        callback_group_savemap = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
         Savemap_Server = this->create_service<ig_lio_c_msgs::srv::SaveMap>("SaveMap",
                                                                            std::bind(&MapBuilderNode::saveMapCallBack, this, _1, _2),
-                                                                           rmw_qos_profile_services_default,
-                                                                           callback_group_savemap);
+                                                                           rmw_qos_profile_services_default);
+        Reloc_Server = this->create_service<ig_lio_c_msgs::srv::ReLoc>("ReLoc",
+                                                                       std::bind(&MapBuilderNode::relocCallback, this, _1, _2),
+                                                                       rmw_qos_profile_services_default);
     }
 
     void MapBuilderNode::init()
@@ -157,12 +180,35 @@ namespace IG_LIO
         static_br_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
         lio_builder_ = std::make_shared<IG_LIO::IGLIOBuilder>(lio_params_);
         gridMapPclLoader = std::make_shared<grid_map::GridMapPclLoader>(this->get_logger());
-        loop_closure_.setRate(loop_rate_);
+        loop_closure_.setRate(loop_rate_lc_);
         loop_closure_.setShared(shared_data_);
         loop_closure_.init();
         loop_thread_ = std::make_shared<std::thread>(std::ref(loop_closure_));
+        icp_localizer_ = std::make_shared<IG_LIO::IcpLocalizer>(localizer_params_.refine_resolution,
+                                                                localizer_params_.rough_resolution,
+                                                                localizer_params_.refine_iter,
+                                                                localizer_params_.rough_iter,
+                                                                localizer_params_.thresh);
+        icp_localizer_->setSearchParams(localizer_params_.xy_offset, localizer_params_.yaw_offset, localizer_params_.yaw_resolution);
+        localizer_loop_.setRate(loop_rate_l_);
+        localizer_loop_.setSharedDate(shared_data_);
+        localizer_loop_.setLocalizer(icp_localizer_);
+        localizer_thread_ = std::make_shared<std::thread>(std::ref(localizer_loop_));
         f = std::bind(&MapBuilderNode::run, this);
         publishBaseLink();
+    }
+
+    void MapBuilderNode::systemReset()
+    {
+        offset_rot_ = Eigen::Matrix3d::Identity();
+        offset_pos_ = Eigen::Vector3d::Zero();
+        {
+            std::lock_guard<std::mutex> lock(shared_data_->mutex);
+            shared_data_->offset_rot = Eigen::Matrix3d::Identity();
+            shared_data_->offset_pos = Eigen::Vector3d::Zero();
+            shared_data_->localizer_service_success = false;
+        }
+        lio_builder_->reset();
     }
 
     void MapBuilderNode::run()
@@ -170,6 +216,16 @@ namespace IG_LIO
         local_rate_->sleep();
         if (!measure_group_.syncPackage(imu_data_, livox_data_))
             return;
+        if (shared_data_->halt_flag)
+            return;
+        if (shared_data_->reset_flag)
+        {
+            RCLCPP_WARN(this->get_logger(), "SYSTEM RESET!");
+            systemReset();
+            shared_data_->service_mutex.lock();
+            shared_data_->reset_flag = false;
+            shared_data_->service_mutex.unlock();
+        }
         lio_builder_->mapping(measure_group_);
         if (lio_builder_->currentStatus() == IG_LIO::Status::INITIALIZE)
             return;
@@ -180,6 +236,16 @@ namespace IG_LIO
                   << " bg: " << current_state_.bg.transpose() * 180.0 / M_PI
                   << " bg_norm: " << current_state_.bg.norm() * 180.0 / M_PI
                   << std::endl;
+        current_cloud_body_ = lio_builder_->cloudUndistortedBody();
+        {
+            std::lock_guard<std::mutex> lock(shared_data_->mutex);
+            shared_data_->local_rot = current_state_.rot;
+            shared_data_->local_pos = current_state_.pos;
+            shared_data_->cloud = current_cloud_body_;
+            offset_rot_ = shared_data_->offset_rot;
+            offset_pos_ = shared_data_->offset_pos;
+            shared_data_->pose_updated = true;
+        }
         br_->sendTransform(eigen2Transform(shared_data_->offset_rot,
                                            shared_data_->offset_pos,
                                            global_frame_,
@@ -208,12 +274,23 @@ namespace IG_LIO
         publishLocalPath();
         publishGlobalPath();
         publishLoopMark();
+        if (publish_map_cloud_)
+        {
+            if (icp_localizer_->isInitialized())
+            {
+                publishMapCloud(pcl2msg(icp_localizer_->getRoughMap(),
+                                        global_frame_,
+                                        current_time_));
+            }
+        }
     }
 
     void MapBuilderNode::stop()
     {
         loop_closure_.stop();
         loop_thread_->join();
+        localizer_loop_.stop();
+        localizer_thread_->join();
     }
 
     void MapBuilderNode::addKeyPose()
@@ -232,10 +309,10 @@ namespace IG_LIO
         Eigen::Matrix3d diff_rot = last_key_pose.local_rot.transpose() * current_state_.rot;
         Eigen::Vector3d diff_pose = last_key_pose.local_rot.transpose() * (current_state_.pos - last_key_pose.local_pos);
         Eigen::Vector3d rpy = rotate2rpy(diff_rot);
-        if (diff_pose.norm() > loop_closure_.mutableParams()->dist_thresh ||
-            std::abs(rpy(0)) > loop_closure_.mutableParams()->rad_thresh ||
-            std::abs(rpy(1)) > loop_closure_.mutableParams()->rad_thresh ||
-            std::abs(rpy(2)) > loop_closure_.mutableParams()->rad_thresh)
+        if (diff_pose.norm() > loop_closure_.mutableParams().dist_thresh ||
+            std::abs(rpy(0)) > loop_closure_.mutableParams().rad_thresh ||
+            std::abs(rpy(1)) > loop_closure_.mutableParams().rad_thresh ||
+            std::abs(rpy(2)) > loop_closure_.mutableParams().rad_thresh)
         {
             std::lock_guard<std::mutex> lock(shared_data_->mutex);
             shared_data_->key_poses.emplace_back(idx, current_time_, current_state_.rot, current_state_.pos);
@@ -250,6 +327,13 @@ namespace IG_LIO
         if (body_cloud_pub_->get_subscription_count() == 0)
             return;
         body_cloud_pub_->publish(cloud_to_pub);
+    }
+
+    void MapBuilderNode::publishMapCloud(const sensor_msgs::msg::PointCloud2 &cloud_to_pub)
+    {
+        if (map_cloud_pub_->get_subscription_count() == 0)
+            return;
+        map_cloud_pub_->publish(cloud_to_pub);
     }
 
     void MapBuilderNode::publishLocalCloudAndGridMap(const sensor_msgs::msg::PointCloud2 &cloud_to_pub)
@@ -447,6 +531,33 @@ namespace IG_LIO
         response->message = "Save map success!";
         writer_.writeBinaryCompressed(file_path, *cloud);
         RCLCPP_INFO(this->get_logger(), "Success to save map !");
+    }
+
+    void MapBuilderNode::relocCallback(const ig_lio_c_msgs::srv::ReLoc::Request::SharedPtr request,
+                                       const ig_lio_c_msgs::srv::ReLoc::Response::SharedPtr response)
+    {
+        std::string map_path = request->pcd_path;
+        float x = request->x;
+        float y = request->y;
+        float z = request->z;
+        float roll = request->roll;
+        float pitch = request->pitch;
+        float yaw = request->yaw;
+        Eigen::AngleAxisf rollAngle(roll, Eigen::Vector3f::UnitX());
+        Eigen::AngleAxisf pitchAngle(pitch, Eigen::Vector3f::UnitY());
+        Eigen::AngleAxisf yawAngle(yaw, Eigen::Vector3f::UnitZ());
+        Eigen::Quaternionf q = rollAngle * pitchAngle * yawAngle;
+        {
+            std::lock_guard<std::mutex> lock(shared_data_->service_mutex);
+            shared_data_->halt_flag = false;
+            shared_data_->localizer_service_called = true;
+            shared_data_->localizer_activate = true;
+            shared_data_->map_path = map_path;
+            shared_data_->initial_guess.block<3, 3>(0, 0) = q.toRotationMatrix().cast<double>();
+            shared_data_->initial_guess.block<3, 1>(0, 3) = Eigen::Vector3d(x, y, z);
+        }
+        response->status = 1;
+        response->message = "RELOCALIZE CALLED!";
     }
 } // namespace IG_LIO
 
