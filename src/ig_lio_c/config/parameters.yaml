@@ -6,7 +6,7 @@ map_builder_node:
     imu_topic: /imu/data
     livox_topic: /livox/lidar
     local_rate: 200.0
-    loop_rate_lc: 1.0
+    loop_rate_lc: 0.5
     loop_rate_l: 1.0
     grid_map_cloud_size: 10
 

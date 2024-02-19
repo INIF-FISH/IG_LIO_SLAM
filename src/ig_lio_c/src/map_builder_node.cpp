@@ -143,7 +143,6 @@ namespace IG_LIO
     {
         rclcpp::QoS qos(1000);
         qos.reliability();
-        qos.keep_last(1);
         imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(imu_data_.topic, qos, std::bind(&ImuData::callback, &imu_data_, _1));
         livox_sub_ = this->create_subscription<livox_ros_driver2::msg::CustomMsg>(livox_data_.topic, qos, std::bind(&LivoxData::callback, &livox_data_, _1));
     }
@@ -152,7 +151,6 @@ namespace IG_LIO
     {
         rclcpp::QoS qos(1000);
         qos.reliability();
-        qos.keep_last(1);
 
         local_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("local_cloud", qos);
         local_grid_map_pub_ = this->create_publisher<grid_map_msgs::msg::GridMap>(
