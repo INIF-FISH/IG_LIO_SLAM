@@ -555,6 +555,7 @@ namespace IG_LIO
         std::string body_frame_;
         double current_time_;
         bool publish_map_cloud_;
+        int grid_map_cloud_size = 10;
         IG_LIO::State current_state_;
         ImuData imu_data_;
         LivoxData livox_data_;
@@ -594,6 +595,7 @@ namespace IG_LIO
         Eigen::Vector3d offset_pos_ = Eigen::Vector3d::Zero();
 
         IG_LIO::PointCloudXYZI::Ptr current_cloud_body_;
+        std::deque<pcl::PointCloud<pcl::PointXYZ>::ConstPtr> grid_map_cloud_;
     };
 } // namespace IG_LIO
 

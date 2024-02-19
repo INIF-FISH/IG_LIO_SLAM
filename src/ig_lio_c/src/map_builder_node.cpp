@@ -40,6 +40,8 @@ namespace IG_LIO
         local_rate_ = std::make_shared<rclcpp::Rate>(local_rate);
         loop_rate_lc_ = std::make_shared<rclcpp::Rate>(loop_rate_lc);
         loop_rate_l_ = std::make_shared<rclcpp::Rate>(loop_rate_l);
+        this->declare_parameter("grid_map_cloud_size", 10);
+        this->get_parameter("grid_map_cloud_size", grid_map_cloud_size);
         this->declare_parameter<double>("lio_builder.scan_resolution", 0.3);
         this->declare_parameter<double>("lio_builder.map_resolution", 0.3);
         this->declare_parameter<double>("lio_builder.point2plane_gain", 100.0);
@@ -343,8 +345,17 @@ namespace IG_LIO
         pcl::PointCloud<pcl::PointXYZ> in_cloud;
         pcl::fromROSMsg(cloud_to_pub, in_cloud);
         pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud_ptr = in_cloud.makeShared();
+        if (grid_map_cloud_.size() == grid_map_cloud_size)
+            grid_map_cloud_.pop_front();
+        grid_map_cloud_.push_back(cloud_ptr);
+        pcl::PointCloud<pcl::PointXYZ> temp_cloud;
+        pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud_ = temp_cloud.makeShared();
+        for (auto ptr : grid_map_cloud_)
+        {
+            *temp_cloud_ += *ptr;
+        }
         gridMapPclLoader->loadParameters(gm::getParameterPath());
-        gridMapPclLoader->setInputCloud(cloud_ptr);
+        gridMapPclLoader->setInputCloud(temp_cloud_);
         gridMapPclLoader->initializeGridMapGeometryFromInputCloud();
         gridMapPclLoader->addLayerFromInputCloud("elevation");
         grid_map::GridMap gridMap = gridMapPclLoader->getGridMap();
