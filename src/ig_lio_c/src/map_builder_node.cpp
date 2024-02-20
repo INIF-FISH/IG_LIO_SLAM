@@ -41,7 +41,9 @@ namespace IG_LIO
         loop_rate_lc_ = std::make_shared<rclcpp::Rate>(loop_rate_lc);
         loop_rate_l_ = std::make_shared<rclcpp::Rate>(loop_rate_l);
         this->declare_parameter("grid_map_cloud_size", 10);
+        this->declare_parameter("blind", 0.5);
         this->get_parameter("grid_map_cloud_size", grid_map_cloud_size);
+        this->get_parameter("blind", livox_data_.blind);
         this->declare_parameter<double>("lio_builder.scan_resolution", 0.3);
         this->declare_parameter<double>("lio_builder.map_resolution", 0.3);
         this->declare_parameter<double>("lio_builder.point2plane_gain", 100.0);

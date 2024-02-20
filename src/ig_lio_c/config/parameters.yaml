@@ -9,6 +9,7 @@ map_builder_node:
     loop_rate_lc: 0.5
     loop_rate_l: 1.0
     grid_map_cloud_size: 10
+    blind: 0.4
 
     lio_builder:
       scan_resolution: 0.3

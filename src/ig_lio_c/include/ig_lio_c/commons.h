@@ -65,7 +65,7 @@ namespace IG_LIO
         std::mutex mutex;
         std::deque<IG_LIO::PointCloudXYZI::Ptr> buffer;
         std::deque<double> time_buffer;
-        double blind = 0.5;
+        double blind = 0.35;
         int filter_num = 3;
         double last_timestamp = 0;
         void callback(const livox_ros_driver2::msg::CustomMsg::SharedPtr msg);
