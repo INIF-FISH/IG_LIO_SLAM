@@ -6,10 +6,12 @@ map_builder_node:
     imu_topic: /imu/data
     livox_topic: /livox/lidar
     local_rate: 200.0
-    loop_rate_lc: 0.5
+    loop_rate_lc: 1.0
     loop_rate_l: 1.0
     grid_map_cloud_size: 10
     blind: 0.4
+    occupancyGriddataMin: -0.5
+    occupancyGriddataMax: 10.0
 
     lio_builder:
       scan_resolution: 0.3
@@ -18,13 +20,13 @@ map_builder_node:
       gicp_constraint_gain: 100.0
       map_capacity: 5000000
       grid_capacity: 20
-      extrinsic_est_en: false
+      extrinsic_est_en: true
       align_gravity: true
       near_mode: 1
-      acc_cov: 0.2
-      gyr_cov: 0.2
-      ba_cov: 0.00002
-      bg_cov: 0.00002
+      acc_cov: 0.1
+      gyr_cov: 0.1
+      ba_cov: 0.00001
+      bg_cov: 0.00001
       imu_ext_rot: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
       imu_ext_pos: [-0.011, -0.02329, 0.04412]
 

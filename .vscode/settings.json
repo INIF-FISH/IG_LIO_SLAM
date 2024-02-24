@@ -81,6 +81,8 @@
         "variant": "cpp",
         "*.ipp": "cpp",
         "numericaldiff": "cpp",
-        "slist": "cpp"
+        "slist": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp"
     }
 }

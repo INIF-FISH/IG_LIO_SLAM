@@ -55,6 +55,7 @@ find_package(grid_map_ros REQUIRED)
 find_package(grid_map_pcl REQUIRED)
 find_package(filters REQUIRED)
 find_package(ig_lio_c_msgs REQUIRED)
+find_package(nav2_util REQUIRED)
 
 set(dependencies
   rclcpp
@@ -74,6 +75,7 @@ set(dependencies
   grid_map_pcl
   filters
   ig_lio_c_msgs
+  nav2_util
 )
 
 include_directories(
