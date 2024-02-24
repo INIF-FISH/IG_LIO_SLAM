@@ -1,0 +1,11 @@
+################################################################################
+# Repo
+
+.circleci/
+.dockerhub/
+.git/
+.github/
+.dockerignore
+.gitignore
+**Dockerfile
+**.Dockerfile

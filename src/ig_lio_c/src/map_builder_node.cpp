@@ -366,6 +366,7 @@ namespace IG_LIO
             auto msg = grid_map::GridMapRosConverter::toMessage(gridMap);
             local_grid_map_pub_->publish(std::move(msg));
         }
+        
     }
 
     void MapBuilderNode::publishBaseLink()
