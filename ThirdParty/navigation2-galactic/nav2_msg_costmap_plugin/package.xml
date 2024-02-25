@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>nav2_msg_costmap_plugin</name>
+  <version>1.0.0</version>
+  <description>Run-time plugin transform ROS map Msgs into costmap</description>
+  <maintainer email="guhao0521@gmail.com">Hao Gu</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <depend>nav2_costmap_2d</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>tf2_eigen</depend>
+  <export>
+    <costmap_2d plugin="${prefix}/msg_layer.xml" />
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

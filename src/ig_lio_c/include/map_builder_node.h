@@ -31,15 +31,6 @@
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
-#include <grid_map_msgs/msg/grid_map.hpp>
-#include <grid_map_core/GridMap.hpp>
-#include <grid_map_ros/GridMapRosConverter.hpp>
-#include <grid_map_pcl/GridMapPclLoader.hpp>
-#include <grid_map_pcl/helpers.hpp>
-#include <filters/filter_chain.hpp>
-#include <nav_msgs/msg/occupancy_grid.hpp>
-#include <nav2_util/occ_grid_values.hpp>
-
 #include <ig_lio_c_msgs/srv/save_map.hpp>
 #include <ig_lio_c_msgs/srv/re_loc.hpp>
 
@@ -51,7 +42,6 @@ namespace IG_LIO
     using namespace std::chrono;
     using std::placeholders::_1;
     using std::placeholders::_2;
-    namespace gm = ::grid_map::grid_map_pcl;
 
     struct LoopPair
     {
@@ -541,8 +531,6 @@ namespace IG_LIO
         void publishBodyCloud(const sensor_msgs::msg::PointCloud2 &cloud_to_pub);
         void publishMapCloud(const sensor_msgs::msg::PointCloud2 &cloud_to_pub);
         void publishLocalCloud(const sensor_msgs::msg::PointCloud2 &cloud_to_pub);
-        grid_map::GridMap makeGridMap(const sensor_msgs::msg::PointCloud2 &cloud_to_pub);
-        void publishGridMap(const grid_map::GridMap &gridMap_to_pub);
         void publishOdom(const nav_msgs::msg::Odometry &odom_to_pub);
         void publishBaseLink();
         void publishLocalPath();
@@ -552,8 +540,6 @@ namespace IG_LIO
                              const ig_lio_c_msgs::srv::SaveMap::Response::SharedPtr response);
         void relocCallback(const ig_lio_c_msgs::srv::ReLoc::Request::SharedPtr request,
                            const ig_lio_c_msgs::srv::ReLoc::Response::SharedPtr response);
-        std::shared_ptr<nav_msgs::msg::OccupancyGrid> CreateOccupancyGridMsg(const grid_map::GridMap &gridMap);
-        void publishOccupancyGridMap(std::shared_ptr<nav_msgs::msg::OccupancyGrid> &occupancyGrid_to_pub);
 
     private:
         std::string global_frame_;
@@ -561,9 +547,10 @@ namespace IG_LIO
         std::string body_frame_;
         double current_time_;
         bool publish_map_cloud_;
-        int grid_map_cloud_size = 10;
-        double occupancyGriddataMin = -0.1;
-        double occupancyGriddataMax = 10.0;
+        bool localizer_reloc_on_init;
+        std::shared_future<std::shared_ptr<ig_lio_c_msgs::srv::ReLoc_Response>> localizer_response;
+        std::string localizer_pcd_path;
+        std::vector<double> localizer_xyz_rpy = {0., 0., 0., 0., 0., 0.};
         IG_LIO::State current_state_;
         ImuData imu_data_;
         LivoxData livox_data_;
@@ -583,28 +570,25 @@ namespace IG_LIO
         std::shared_ptr<tf2_ros::TransformBroadcaster> br_;
         std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_br_;
         pcl::PCDWriter writer_;
-        std::shared_ptr<grid_map::GridMapPclLoader> gridMapPclLoader;
 
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr local_cloud_pub_;
-        rclcpp::Publisher<grid_map_msgs::msg::GridMap>::SharedPtr local_grid_map_pub_;
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr body_cloud_pub_;
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr map_cloud_pub_;
         rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr loop_mark_pub_;
         rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr local_path_pub_;
         rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr global_path_pub_;
-        rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_pub_;
         rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
         rclcpp::Subscription<livox_ros_driver2::msg::CustomMsg>::SharedPtr livox_sub_;
         rclcpp::Service<ig_lio_c_msgs::srv::SaveMap>::SharedPtr Savemap_Server;
         rclcpp::Service<ig_lio_c_msgs::srv::ReLoc>::SharedPtr Reloc_Server;
+        rclcpp::Client<ig_lio_c_msgs::srv::ReLoc>::SharedPtr Reloc_Client;
 
         Eigen::Matrix3d offset_rot_ = Eigen::Matrix3d::Identity();
 
         Eigen::Vector3d offset_pos_ = Eigen::Vector3d::Zero();
 
         IG_LIO::PointCloudXYZI::Ptr current_cloud_body_;
-        std::deque<pcl::PointCloud<pcl::PointXYZ>::ConstPtr> grid_map_cloud_;
     };
 } // namespace IG_LIO
 

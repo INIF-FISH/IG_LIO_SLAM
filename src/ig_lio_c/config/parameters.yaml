@@ -2,16 +2,13 @@ map_builder_node:
   ros__parameters:
     map_frame: map
     local_frame: local
-    body_frame: body
+    body_frame: odom
     imu_topic: /imu/data
     livox_topic: /livox/lidar
     local_rate: 200.0
     loop_rate_lc: 1.0
     loop_rate_l: 1.0
-    grid_map_cloud_size: 10
     blind: 0.4
-    occupancyGriddataMin: -0.5
-    occupancyGriddataMax: 10.0
 
     lio_builder:
       scan_resolution: 0.3
@@ -47,8 +44,8 @@ map_builder_node:
 
     localizer:
       reloc_on_init: false
-      pcd_path: ""
-      xyz_rpy: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      pcd_path: "/home/nine-fish/4.pcd"
+      xyz_rpy: [0.0, 0.0, 0.0, 3.14, 0.0, 3.14]
       refine_resolution: 0.15
       rough_resolution: 0.3
       refine_iter: 5.
@@ -57,3 +54,10 @@ map_builder_node:
       xy_offset: 1.0
       yaw_offset: 0.
       yaw_resolution: 0.3
+
+occupancy_grid_converter:
+  ros__parameters:
+    robot_frame: base_link
+    grid_map_cloud_size: 10
+    occupancyGriddataMin: -0.5
+    occupancyGriddataMax: 10.0

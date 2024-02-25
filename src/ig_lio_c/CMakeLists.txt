@@ -32,8 +32,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}   ${OpenMP_C_FLAGS}")
 endif()
-
-# find dependencies
 find_package(ament_cmake REQUIRED COMPONENTS)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
@@ -85,7 +83,7 @@ include_directories(
   ${PCL_INCLUDE_DIRS}
 )
 
-set(sources
+set(sources_mapping_node
   src/ig_lio_c/ieskf/ieskf.cpp
   src/ig_lio_c/localizer/icp_localizer.cpp
   src/ig_lio_c/map_builder/imu_processor.cpp
@@ -95,25 +93,12 @@ set(sources
   src/map_builder_node.cpp
 )
 
-add_library(${PROJECT_NAME} SHARED
-  ${sources}
-)
-
-ament_target_dependencies(${PROJECT_NAME}
-  ${dependencies}
-)
-
-target_compile_definitions(${PROJECT_NAME}
-  PRIVATE "COMPOSITION_BUILDING_DLL"
-)
-
-rclcpp_components_register_nodes(${PROJECT_NAME}
-  PLUGIN "ig_lio_c::MapBuilderNode"
-  EXECUTABLE map_builder_node
+set(sources_converter
+  src/occupancy_grid_converter.cpp
 )
 
 add_executable(map_builder_node
-  ${sources}
+  ${sources_mapping_node}
 )
 
 ament_target_dependencies(map_builder_node
@@ -126,16 +111,22 @@ target_link_libraries(map_builder_node
   gtsam
 )
 
-install(TARGETS
-  ${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
+add_executable(occupancy_grid_converter
+  ${sources_converter}
+)
+
+ament_target_dependencies(occupancy_grid_converter
+  ${dependencies}
+)
+
+target_link_libraries(occupancy_grid_converter
+  ${Eigen3_LIBRARIES}
+  ${PCL_LIBRARIES}
 )
 
 install(TARGETS
   map_builder_node
+  occupancy_grid_converter
 
   DESTINATION lib/${PROJECT_NAME}
 )

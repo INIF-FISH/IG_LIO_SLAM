@@ -40,14 +40,8 @@ namespace IG_LIO
         local_rate_ = std::make_shared<rclcpp::Rate>(local_rate);
         loop_rate_lc_ = std::make_shared<rclcpp::Rate>(loop_rate_lc);
         loop_rate_l_ = std::make_shared<rclcpp::Rate>(loop_rate_l);
-        this->declare_parameter<int>("grid_map_cloud_size", 10);
         this->declare_parameter<double>("blind", 0.5);
-        this->declare_parameter<double>("occupancyGriddataMin", -0.1);
-        this->declare_parameter<double>("occupancyGriddataMax", 10.0);
-        this->get_parameter("grid_map_cloud_size", grid_map_cloud_size);
         this->get_parameter("blind", livox_data_.blind);
-        this->get_parameter("occupancyGriddataMin", occupancyGriddataMin);
-        this->get_parameter("occupancyGriddataMax", occupancyGriddataMax);
         this->declare_parameter<double>("lio_builder.scan_resolution", 0.3);
         this->declare_parameter<double>("lio_builder.map_resolution", 0.3);
         this->declare_parameter<double>("lio_builder.point2plane_gain", 100.0);
@@ -143,6 +137,13 @@ namespace IG_LIO
         this->get_parameter("localizer.xy_offset", localizer_params_.xy_offset);
         this->get_parameter("localizer.yaw_offset", localizer_params_.yaw_offset);
         this->get_parameter("localizer.yaw_resolution", localizer_params_.yaw_resolution);
+        this->declare_parameter<bool>("localizer.reloc_on_init", false);
+        this->declare_parameter<std::string>("localizer.pcd_path", "");
+        std::vector<double> pre_xyz_rpy = {0., 0., 0., 0., 0., 0.};
+        this->declare_parameter<std::vector<double>>("localizer.xyz_rpy", pre_xyz_rpy);
+        this->get_parameter("localizer.reloc_on_init", localizer_reloc_on_init);
+        this->get_parameter("localizer.pcd_path", localizer_pcd_path);
+        this->get_parameter("localizer.xyz_rpy", localizer_xyz_rpy);
     }
 
     void MapBuilderNode::initSubscribers()
@@ -156,18 +157,14 @@ namespace IG_LIO
     void MapBuilderNode::initPublishers()
     {
         rclcpp::QoS qos(1000);
-        qos.best_effort();
-
+        qos.durability_volatile();
         local_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("local_cloud", qos);
-        local_grid_map_pub_ = this->create_publisher<grid_map_msgs::msg::GridMap>(
-            "grid_map_from_raw_pointcloud", qos);
         body_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud", qos);
         map_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("map_cloud", qos);
         odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("slam_odom", qos);
         loop_mark_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("loop_mark", qos);
         local_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("local_path", qos);
         global_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("global_path", qos);
-        occupancy_grid_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", qos);
     }
 
     void MapBuilderNode::initSerivces()
@@ -178,6 +175,7 @@ namespace IG_LIO
         Reloc_Server = this->create_service<ig_lio_c_msgs::srv::ReLoc>("ReLoc",
                                                                        std::bind(&MapBuilderNode::relocCallback, this, _1, _2),
                                                                        rmw_qos_profile_services_default);
+        Reloc_Client = this->create_client<ig_lio_c_msgs::srv::ReLoc>("ReLoc", rmw_qos_profile_services_default);
     }
 
     void MapBuilderNode::init()
@@ -186,7 +184,6 @@ namespace IG_LIO
         br_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
         static_br_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
         lio_builder_ = std::make_shared<IG_LIO::IGLIOBuilder>(lio_params_);
-        gridMapPclLoader = std::make_shared<grid_map::GridMapPclLoader>(this->get_logger());
         loop_closure_.setRate(loop_rate_lc_);
         loop_closure_.setShared(shared_data_);
         loop_closure_.init();
@@ -203,6 +200,18 @@ namespace IG_LIO
         localizer_thread_ = std::make_shared<std::thread>(std::ref(localizer_loop_));
         f = std::bind(&MapBuilderNode::run, this);
         publishBaseLink();
+        if (localizer_reloc_on_init)
+        {
+            std::shared_ptr<ig_lio_c_msgs::srv::ReLoc_Request> request;
+            request->pcd_path = localizer_pcd_path;
+            request->x = localizer_xyz_rpy[0];
+            request->y = localizer_xyz_rpy[1];
+            request->z = localizer_xyz_rpy[2];
+            request->roll = localizer_xyz_rpy[3];
+            request->pitch = localizer_xyz_rpy[4];
+            request->yaw = localizer_xyz_rpy[5];
+            localizer_response = this->Reloc_Client->async_send_request(request);
+        }
     }
 
     void MapBuilderNode::systemReset()
@@ -221,6 +230,22 @@ namespace IG_LIO
     void MapBuilderNode::run()
     {
         local_rate_->sleep();
+        if (localizer_reloc_on_init)
+        {
+            std::future_status status;
+            status = localizer_response.wait_for(std::chrono::nanoseconds(1));
+            if (status == std::future_status::ready)
+            {
+                std::shared_ptr<ig_lio_c_msgs::srv::ReLoc_Response> response = localizer_response.get();
+                localizer_reloc_on_init = false;
+                RCLCPP_INFO(this->get_logger(), response->message.c_str());
+            }
+            else if (status == std::future_status::timeout)
+            {
+                RCLCPP_WARN(this->get_logger(), "RELOC CALL FAILED !");
+                localizer_reloc_on_init = false;
+            }
+        }
         if (!measure_group_.syncPackage(imu_data_, livox_data_))
             return;
         if (shared_data_->halt_flag)
@@ -278,12 +303,6 @@ namespace IG_LIO
         publishLocalCloud(pcl2msg(lio_builder_->cloudWorld(),
                                   local_frame_,
                                   current_time_));
-        auto gridMap = makeGridMap(pcl2msg(lio_builder_->cloudWorld(),
-                                           local_frame_,
-                                           current_time_));
-        publishGridMap(gridMap);
-        auto occupancyGridMap = CreateOccupancyGridMsg(gridMap);
-        publishOccupancyGridMap(occupancyGridMap);
         publishLocalPath();
         publishGlobalPath();
         publishLoopMark();
@@ -353,39 +372,6 @@ namespace IG_LIO
     {
         if (local_cloud_pub_->get_subscription_count() != 0)
             local_cloud_pub_->publish(cloud_to_pub);
-    }
-
-    grid_map::GridMap MapBuilderNode::makeGridMap(const sensor_msgs::msg::PointCloud2 &cloud_to_pub)
-    {
-        pcl::PointCloud<pcl::PointXYZ> in_cloud;
-        pcl::fromROSMsg(cloud_to_pub, in_cloud);
-        pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud_ptr = in_cloud.makeShared();
-        if (grid_map_cloud_.size() == grid_map_cloud_size)
-            grid_map_cloud_.pop_front();
-        grid_map_cloud_.push_back(cloud_ptr);
-        pcl::PointCloud<pcl::PointXYZ> temp_cloud;
-        pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud_ = temp_cloud.makeShared();
-        for (auto ptr : grid_map_cloud_)
-        {
-            *temp_cloud_ += *ptr;
-        }
-        gridMapPclLoader->loadParameters(gm::getParameterPath());
-        gridMapPclLoader->setInputCloud(temp_cloud_);
-        gridMapPclLoader->initializeGridMapGeometryFromInputCloud();
-        gridMapPclLoader->addLayerFromInputCloud("elevation");
-        auto gridMap = gridMapPclLoader->getGridMap();
-        gridMap.setFrameId("map");
-        gridMap.setTimestamp(this->get_clock()->now().nanoseconds());
-        return gridMap;
-    }
-
-    void MapBuilderNode::publishGridMap(const grid_map::GridMap &gridMap_to_pub)
-    {
-        if (local_grid_map_pub_->get_subscription_count() != 0)
-        {
-            auto msg = grid_map::GridMapRosConverter::toMessage(gridMap_to_pub);
-            local_grid_map_pub_->publish(std::move(msg));
-        }
     }
 
     void MapBuilderNode::publishBaseLink()
@@ -589,56 +575,6 @@ namespace IG_LIO
         }
         response->status = 1;
         response->message = "RELOCALIZE CALLED!";
-    }
-
-    std::shared_ptr<nav_msgs::msg::OccupancyGrid> MapBuilderNode::CreateOccupancyGridMsg(const grid_map::GridMap &gridMap)
-    {
-        auto time = this->get_clock()->now();
-        nav_msgs::msg::OccupancyGrid occupancy_grid;
-        occupancy_grid.header.frame_id = gridMap.getFrameId();
-        occupancy_grid.header.stamp = rclcpp::Time(gridMap.getTimestamp());
-        occupancy_grid.info.map_load_time = occupancy_grid.header.stamp;
-        occupancy_grid.info.resolution = gridMap.getResolution();
-        occupancy_grid.info.width = gridMap.getSize()(0);
-        occupancy_grid.info.height = gridMap.getSize()(1);
-        grid_map::Position position = gridMap.getPosition() - 0.5 * gridMap.getLength().matrix();
-        occupancy_grid.info.origin.position.x = position.x();
-        occupancy_grid.info.origin.position.y = position.y();
-        occupancy_grid.info.origin.position.z = 0.0;
-        occupancy_grid.info.origin.orientation.x = 0.0;
-        occupancy_grid.info.origin.orientation.y = 0.0;
-        occupancy_grid.info.origin.orientation.z = 0.0;
-        occupancy_grid.info.origin.orientation.w = 1.0;
-        size_t nCells = gridMap.getSize().prod();
-        occupancy_grid.data.resize(nCells);
-        for (grid_map::GridMapIterator iterator(gridMap); !iterator.isPastEnd(); ++iterator)
-        {
-            float value = gridMap.at("elevation", *iterator);
-            if (std::isnan(value))
-            {
-                value = nav2_util::OCC_GRID_UNKNOWN;
-            }
-            else
-            {
-                if(value > occupancyGriddataMin && value < occupancyGriddataMax)
-                    value = nav2_util::OCC_GRID_OCCUPIED;
-                else if(value > occupancyGriddataMax)
-                    value = nav2_util::OCC_GRID_UNKNOWN;
-                else
-                    value = nav2_util::OCC_GRID_FREE;
-            }
-            size_t index = grid_map::getLinearIndexFromIndex(iterator.getUnwrappedIndex(), gridMap.getSize(), false);
-            occupancy_grid.data[nCells - index - 1] = value;
-        }
-        return std::make_shared<nav_msgs::msg::OccupancyGrid>(occupancy_grid);
-    }
-
-    void MapBuilderNode::publishOccupancyGridMap(std::shared_ptr<nav_msgs::msg::OccupancyGrid> &occupancyGrid_to_pub)
-    {
-        if (this->occupancy_grid_pub_->get_subscription_count() != 0)
-        {
-            this->occupancy_grid_pub_->publish(*occupancyGrid_to_pub);
-        }
     }
 } // namespace IG_LIO
 
