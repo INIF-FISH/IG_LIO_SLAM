@@ -3,7 +3,7 @@
 namespace IG_LIO
 {
     OccupancyGridConverterNode::OccupancyGridConverterNode(const rclcpp::NodeOptions &options)
-        : Node("map_builder", options)
+        : Node("map_builder", options), filterChain_("grid_map::GridMap")
     {
         param_respond();
         initSubscribers();
@@ -22,37 +22,30 @@ namespace IG_LIO
         this->declare_parameter<int>("grid_map_cloud_size", 10);
         this->declare_parameter<double>("occupancyGriddataMin", -0.1);
         this->declare_parameter<double>("occupancyGriddataMax", 10.0);
+        this->declare_parameter("filter_chain_parameter_name", std::string("filters"));
         this->get_parameter("robot_frame", robot_frame);
         this->get_parameter("grid_map_cloud_size", grid_map_cloud_size);
         this->get_parameter("occupancyGriddataMin", occupancyGriddataMin);
         this->get_parameter("occupancyGriddataMax", occupancyGriddataMax);
+        this->get_parameter("filter_chain_parameter_name", filterChainParametersName_);
     }
 
     void OccupancyGridConverterNode::initSubscribers()
     {
-        rclcpp::QoS qos(1000);
-        qos.best_effort();
         point_cloud_subscription_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-            "local_cloud", qos, std::bind(&OccupancyGridConverterNode::pointCloudCallback, this, std::placeholders::_1));
+            "local_cloud", rclcpp::QoS(100).transient_local(), std::bind(&OccupancyGridConverterNode::pointCloudCallback, this, std::placeholders::_1));
     }
 
     void OccupancyGridConverterNode::initPublishers()
     {
-        rclcpp::QoS qos(1000);
-        qos.best_effort();
-        rclcpp::QoS map_qos(10);
-        map_qos.transient_local();
-        map_qos.reliable();
-        map_qos.keep_last(1);
         local_grid_map_pub_ = this->create_publisher<grid_map_msgs::msg::GridMap>(
-            "grid_map_from_raw_pointcloud", qos);
-        occupancy_grid_pub_map_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", map_qos);
-        occupancy_grid_pub_local_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("/local_costmap/grid_map", map_qos);
+            "/local_costmap/grid_map", rclcpp::QoS(100).transient_local());
+        occupancy_grid_pub_local_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("/local_costmap/occ_map", rclcpp::QoS(100).transient_local());
+        occupancy_grid_pub_map_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", rclcpp::QoS(100).transient_local());
     }
 
     void OccupancyGridConverterNode::initSerivces()
     {
-
         CovertMap_Server = this->create_service<ig_lio_c_msgs::srv::CovertMap>("CovertMap",
                                                                                std::bind(&OccupancyGridConverterNode::covertMapCallBack, this, _1, _2),
                                                                                rmw_qos_profile_services_default);
@@ -60,36 +53,81 @@ namespace IG_LIO
 
     void OccupancyGridConverterNode::init()
     {
+        tfBuffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+        tfListener_ = std::make_shared<tf2_ros::TransformListener>(*tfBuffer_);
         gridMapPclLoader = std::make_shared<grid_map::GridMapPclLoader>(this->get_logger());
+        gridMapPclLoader->loadParameters(gm::getParameterPath());
+        if (filterChain_.configure(
+                filterChainParametersName_, this->get_node_logging_interface(),
+                this->get_node_parameters_interface()))
+        {
+            RCLCPP_INFO(this->get_logger(), "Filter chain configured.");
+        }
+        else
+        {
+            RCLCPP_ERROR(this->get_logger(), "Could not configure the filter chain!");
+            rclcpp::shutdown();
+            return;
+        }
     }
 
     grid_map::GridMap OccupancyGridConverterNode::makeGridMapFromDepth(const sensor_msgs::msg::PointCloud2 &cloud_to_make)
     {
         pcl::PointCloud<pcl::PointXYZ> in_cloud;
         pcl::fromROSMsg(cloud_to_make, in_cloud);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud_ptr = in_cloud.makeShared();
+        geometry_msgs::msg::TransformStamped tf_map_to_base;
+        try
+        {
+            geometry_msgs::msg::TransformStamped tf_msg;
+            tf_map_to_base = tfBuffer_->lookupTransform("map", "base_link", cloud_to_make.header.stamp, rclcpp::Duration::from_seconds(0.1));
+        }
+        catch (const tf2::TransformException &ex)
+        {
+            RCLCPP_ERROR(this->get_logger(), "%s", ex.what());
+            grid_map::GridMap result;
+            return result;
+        }
+        Eigen::Vector3d xyz_base = {tf_map_to_base.transform.translation.x,
+                                    tf_map_to_base.transform.translation.y,
+                                    tf_map_to_base.transform.translation.z};
+        RCLCPP_INFO_STREAM(this->get_logger(), "X: " << tf_map_to_base.transform.translation.x);
+        RCLCPP_INFO_STREAM(this->get_logger(), "Y: " << tf_map_to_base.transform.translation.y);
+        for (size_t i = 0; i < cloud_ptr->points.size(); i++)
+        {
+            Eigen::Vector3d xyz_pt = {cloud_ptr->points[i].x,
+                                      cloud_ptr->points[i].y,
+                                      cloud_ptr->points[i].z};
+            Eigen::Vector3d dxyz = xyz_pt - xyz_base;
+            if (dxyz.norm() > point_min_dist_ && dxyz.norm() < point_max_dist_)
+                (*cloud_filtered).points.push_back(cloud_ptr->points[i]);
+        }
         if (grid_map_cloud_.size() == grid_map_cloud_size)
             grid_map_cloud_.pop_front();
-        grid_map_cloud_.push_back(cloud_ptr);
-        pcl::PointCloud<pcl::PointXYZ> temp_cloud;
-        pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud_ = temp_cloud.makeShared();
+        grid_map_cloud_.push_back(cloud_filtered);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud(new pcl::PointCloud<pcl::PointXYZ>);
         for (auto ptr : grid_map_cloud_)
         {
-            *temp_cloud_ += *ptr;
+            *temp_cloud += *ptr;
         }
-        gridMapPclLoader->loadParameters(gm::getParameterPath());
-        gridMapPclLoader->setInputCloud(temp_cloud_);
+        gridMapPclLoader->setInputCloud(temp_cloud);
         gridMapPclLoader->initializeGridMapGeometryFromInputCloud();
         gridMapPclLoader->addLayerFromInputCloud("elevation");
         auto gridMap = gridMapPclLoader->getGridMap();
         gridMap.setFrameId("map");
         gridMap.setTimestamp(this->get_clock()->now().nanoseconds());
-        return gridMap;
+        grid_map::GridMap outputMap;
+        if (!filterChain_.update(gridMap, outputMap))
+        {
+            RCLCPP_ERROR(this->get_logger(), "Could not update the grid map filter chain!");
+            return gridMap;
+        }
+        return outputMap;
     }
 
     grid_map::GridMap OccupancyGridConverterNode::makeGridMap(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud_to_make)
     {
-        gridMapPclLoader->loadParameters(gm::getParameterPath());
         gridMapPclLoader->setInputCloud(cloud_to_make);
         gridMapPclLoader->initializeGridMapGeometryFromInputCloud();
         gridMapPclLoader->addLayerFromInputCloud("elevation");
@@ -104,9 +142,8 @@ namespace IG_LIO
         RCLCPP_INFO(this->get_logger(), "Received PointCloud2 message. Height: %d, Width: %d", msg->height, msg->width);
         auto gridMap = makeGridMapFromDepth(*msg);
         publishGridMap(gridMap);
-        auto occupancyGrid = createOccupancyGridMsg(gridMap);
-        occupancyGrid->header.frame_id = "base_link";
-        publishOccupancyGridMapLocal(occupancyGrid);
+        auto occ_grid = createOccupancyGridMsg(gridMap);
+        publishOccupancyGridMapLocal(occ_grid);
     }
 
     void OccupancyGridConverterNode::publishGridMap(const grid_map::GridMap &gridMap_to_pub)
@@ -209,6 +246,7 @@ int main(int argc, char **argv)
     signal(SIGINT, signalHandler);
     rclcpp::init(argc, argv);
     auto node = std::make_shared<IG_LIO::OccupancyGridConverterNode>();
+    node->get_logger().set_level(rclcpp::Logger::Level::Error);
     while (rclcpp::ok() && !terminate_flag)
     {
         rclcpp::spin_some(node);

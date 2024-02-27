@@ -11,11 +11,13 @@
 #include <grid_map_pcl/helpers.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <nav2_util/occ_grid_values.hpp>
-
+#include <filters/filter_chain.hpp>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
-
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <ig_lio_c_msgs/srv/covert_map.hpp>
 
@@ -53,6 +55,8 @@ namespace IG_LIO
         int grid_map_cloud_size = 10;
         double occupancyGriddataMin = -0.1;
         double occupancyGriddataMax = 10.0;
+        double point_min_dist_ = 0.4;
+        double point_max_dist_ = 2.5;
         std::shared_ptr<grid_map::GridMapPclLoader> gridMapPclLoader;
         rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_subscription_;
         rclcpp::Publisher<grid_map_msgs::msg::GridMap>::SharedPtr local_grid_map_pub_;
@@ -60,6 +64,10 @@ namespace IG_LIO
         rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_pub_local_;
         std::deque<pcl::PointCloud<pcl::PointXYZ>::ConstPtr> grid_map_cloud_;
         rclcpp::Service<ig_lio_c_msgs::srv::CovertMap>::SharedPtr CovertMap_Server;
+        std::shared_ptr<tf2_ros::Buffer> tfBuffer_;
+        std::shared_ptr<tf2_ros::TransformListener> tfListener_;
+        filters::FilterChain<grid_map::GridMap> filterChain_;
+        std::string filterChainParametersName_;
     };
 } // namespace IG_LIO
 

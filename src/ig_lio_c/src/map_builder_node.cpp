@@ -127,7 +127,7 @@ namespace IG_LIO
         this->declare_parameter<double>("localizer.rough_iter", 10.);
         this->declare_parameter<double>("localizer.thresh", 0.15);
         this->declare_parameter<double>("localizer.xy_offset", 1.0);
-        this->declare_parameter<double>("localizer.yaw_offset", 0.);
+        this->declare_parameter<int>("localizer.yaw_offset", 0);
         this->declare_parameter<double>("localizer.yaw_resolution", 0.3);
         this->get_parameter("localizer.refine_resolution", localizer_params_.refine_resolution);
         this->get_parameter("localizer.rough_resolution", localizer_params_.rough_resolution);
@@ -148,23 +148,19 @@ namespace IG_LIO
 
     void MapBuilderNode::initSubscribers()
     {
-        rclcpp::QoS qos(1000);
-        qos.best_effort();
-        imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(imu_data_.topic, qos, std::bind(&ImuData::callback, &imu_data_, _1));
-        livox_sub_ = this->create_subscription<livox_ros_driver2::msg::CustomMsg>(livox_data_.topic, qos, std::bind(&LivoxData::callback, &livox_data_, _1));
+        imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(imu_data_.topic, rclcpp::QoS(1000).reliable(), std::bind(&ImuData::callback, &imu_data_, _1));
+        livox_sub_ = this->create_subscription<livox_ros_driver2::msg::CustomMsg>(livox_data_.topic, rclcpp::QoS(1000).reliable(), std::bind(&LivoxData::callback, &livox_data_, _1));
     }
 
     void MapBuilderNode::initPublishers()
     {
-        rclcpp::QoS qos(1000);
-        qos.durability_volatile();
-        local_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("local_cloud", qos);
-        body_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud", qos);
-        map_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("map_cloud", qos);
-        odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("slam_odom", qos);
-        loop_mark_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("loop_mark", qos);
-        local_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("local_path", qos);
-        global_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("global_path", qos);
+        local_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("local_cloud", rclcpp::QoS(100).transient_local());
+        body_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud", rclcpp::QoS(100).transient_local());
+        map_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("map_cloud", rclcpp::QoS(100).transient_local());
+        odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("slam_odom", rclcpp::QoS(100).transient_local());
+        loop_mark_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("loop_mark", rclcpp::QoS(100).transient_local());
+        local_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("local_path", rclcpp::QoS(100).transient_local());
+        global_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("global_path", rclcpp::QoS(100).transient_local());
     }
 
     void MapBuilderNode::initSerivces()
@@ -263,11 +259,7 @@ namespace IG_LIO
             return;
         current_time_ = measure_group_.lidar_time_end;
         current_state_ = lio_builder_->currentState();
-        std::cout << "ba: " << current_state_.ba.transpose()
-                  << " ba_norm: " << current_state_.ba.norm()
-                  << " bg: " << current_state_.bg.transpose() * 180.0 / M_PI
-                  << " bg_norm: " << current_state_.bg.norm() * 180.0 / M_PI
-                  << std::endl;
+        RCLCPP_INFO_STREAM(this->get_logger(), "ba: " << current_state_.ba.transpose() << " ba_norm: " << current_state_.ba.norm() << " bg: " << current_state_.bg.transpose() * 180.0 / M_PI << " bg_norm: " << current_state_.bg.norm() * 180.0 / M_PI);
         current_cloud_body_ = lio_builder_->cloudUndistortedBody();
         {
             std::lock_guard<std::mutex> lock(shared_data_->mutex);

@@ -2,6 +2,7 @@
 #define _VOXEL_MAP_H
 
 #include <list>
+#include <mutex>
 #include <vector>
 #include <memory>
 #include <Eigen/SVD>
@@ -9,6 +10,14 @@
 #include <unordered_map>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
+
+#include <tbb/concurrent_vector.h>
+#include <tbb/parallel_for.h>
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_sort.h>
+#include <tbb/blocked_range3d.h>
+#include <tbb/parallel_invoke.h>
+#include <tbb/concurrent_unordered_map.h>
 
 namespace IG_LIO
 {

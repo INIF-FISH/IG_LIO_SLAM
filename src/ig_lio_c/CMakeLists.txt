@@ -5,7 +5,7 @@ add_compile_definitions(SOPHUS_USE_BASIC_LOGGING)
 set(CMAKE_BUILD_TYPE Release)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic -O2)
+  add_compile_options(-Wall -Wextra -Wpedantic -O3)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mpopcnt")
 
   if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
@@ -32,6 +32,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}   ${OpenMP_C_FLAGS}")
 endif()
+
 find_package(ament_cmake REQUIRED COMPONENTS)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
@@ -52,8 +53,10 @@ find_package(grid_map_core REQUIRED)
 find_package(grid_map_ros REQUIRED)
 find_package(grid_map_pcl REQUIRED)
 find_package(filters REQUIRED)
+find_package(grid_map_filters REQUIRED)
 find_package(ig_lio_c_msgs REQUIRED)
 find_package(nav2_util REQUIRED)
+find_package(TBB REQUIRED)
 
 set(dependencies
   rclcpp
@@ -74,6 +77,8 @@ set(dependencies
   filters
   ig_lio_c_msgs
   nav2_util
+  TBB
+  grid_map_filters
 )
 
 include_directories(
@@ -109,6 +114,7 @@ target_link_libraries(map_builder_node
   ${Eigen3_LIBRARIES}
   ${PCL_LIBRARIES}
   gtsam
+  TBB::tbb
 )
 
 add_executable(occupancy_grid_converter

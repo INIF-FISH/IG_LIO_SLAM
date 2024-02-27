@@ -1,13 +1,14 @@
 map_builder_node:
   ros__parameters:
+    use_sim_time: true
     map_frame: map
     local_frame: local
     body_frame: odom
     imu_topic: /imu/data
     livox_topic: /livox/lidar
     local_rate: 200.0
-    loop_rate_lc: 1.0
-    loop_rate_l: 1.0
+    loop_rate_lc: 0.5
+    loop_rate_l: 0.25
     blind: 0.4
 
     lio_builder:
@@ -52,12 +53,30 @@ map_builder_node:
       rough_iter: 10.
       thresh: 0.15
       xy_offset: 1.0
-      yaw_offset: 0.
-      yaw_resolution: 0.3
+      yaw_offset: 3
+      yaw_resolution: 0.1
 
 occupancy_grid_converter:
   ros__parameters:
+    use_sim_time: true
     robot_frame: base_link
     grid_map_cloud_size: 10
     occupancyGriddataMin: -0.5
     occupancyGriddataMax: 10.0
+
+    filters:
+      filter1:
+        name: surface_normals
+        type: gridMapFilters/NormalVectorsFilter
+        params:
+          input_layer: elevation
+          output_layers_prefix: normal_vectors_
+          radius: 0.2
+          normal_vector_positive_axis: z
+
+      filter2:
+        name: slope
+        type: gridMapFilters/MathExpressionFilter
+        params:
+          output_layer: slope
+          expression: acos(normal_vectors_z)

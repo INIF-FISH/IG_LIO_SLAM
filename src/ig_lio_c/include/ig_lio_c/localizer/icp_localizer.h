@@ -19,7 +19,7 @@ namespace IG_LIO
         double refine_iter = 5;
         double thresh = 0.15;
         double xy_offset = 2.0;
-        double yaw_offset = 3;
+        int yaw_offset = 3;
         double yaw_resolution = M_PI / 6;
     };
 

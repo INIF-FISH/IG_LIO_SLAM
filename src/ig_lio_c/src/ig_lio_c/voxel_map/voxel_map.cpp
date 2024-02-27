@@ -6,6 +6,7 @@ namespace IG_LIO
     {
         return p1.second < p2.second;
     }
+
     size_t HashUtil::operator()(const Eigen::Vector3d &point)
     {
         double loc_xyz[3];
@@ -45,7 +46,6 @@ namespace IG_LIO
         Eigen::JacobiSVD<Eigen::Matrix3d> svd(conv, Eigen::ComputeFullU | Eigen::ComputeFullV);
         Eigen::Vector3d val(1, 1, 1e-3);
         conv = svd.matrixU() * val.asDiagonal() * svd.matrixV().transpose();
-        // conv_inv = conv.inverse();
     }
 
     void Grid::addPoint(Eigen::Vector3d &point, bool insert)
@@ -53,7 +53,6 @@ namespace IG_LIO
         is_updated = false;
         points_num++;
         points_sum += point;
-        // centroid += ((point - centroid) / static_cast<double>(points_num));
         centroid = points_sum / static_cast<double>(points_num);
         conv_sum += (point * point.transpose());
         if (points.size() >= max_num * 2 || !insert)
@@ -205,6 +204,7 @@ namespace IG_LIO
         }
         return error_count;
     }
+
     void VoxelMap::reset()
     {
         cache_.clear();
@@ -213,37 +213,40 @@ namespace IG_LIO
 
     bool VoxelMap::searchKNN(const Eigen::Vector3d &point, size_t K, double range, std::vector<Eigen::Vector3d> &results)
     {
-        std::vector<std::pair<Eigen::Vector3d, double>> candidates;
+        tbb::concurrent_vector<std::pair<Eigen::Vector3d, double>> candidates;
         double range2 = range * range;
-        for (const Eigen::Vector3d &delta : delta_)
-        {
-            Eigen::Vector3d near_by = point + delta;
-            size_t hash_idx = hash_util_(near_by);
-            auto iter = storage_.find(hash_idx);
-            if (iter != storage_.end() && isSameGrid(near_by, iter->second.second->centroid))
-            {
-                for (Eigen::Vector3d &p : iter->second.second->points)
-                {
-                    double dist = (point - p).squaredNorm();
-                    if (dist < range2)
-                        candidates.emplace_back(p, dist);
-                }
-            }
-        }
+
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, delta_.size()),
+                          [&](const tbb::blocked_range<size_t> &r)
+                          {
+                              std::vector<std::pair<Eigen::Vector3d, double>> local_candidates;
+                              local_candidates.reserve(r.size());
+                              for (size_t i = r.begin(); i != r.end(); ++i)
+                              {
+                                  const Eigen::Vector3d &delta = delta_[i];
+                                  Eigen::Vector3d near_by = point + delta;
+                                  size_t hash_idx = hash_util_(near_by);
+                                  auto iter = storage_.find(hash_idx);
+                                  if (iter != storage_.end() && isSameGrid(near_by, iter->second.second->centroid))
+                                  {
+                                      for (Eigen::Vector3d &p : iter->second.second->points)
+                                      {
+                                          double dist = (point - p).squaredNorm();
+                                          if (dist < range2)
+                                              local_candidates.emplace_back(p, dist);
+                                      }
+                                  }
+                              }
+                              auto it = candidates.grow_by(local_candidates.size());
+                              std::copy(local_candidates.begin(), local_candidates.end(), it);
+                          });
 
         if (candidates.empty())
             return false;
 
+        tbb::parallel_sort(candidates.begin(), candidates.end(), compare);
         if (candidates.size() > K)
-        {
-            std::nth_element(
-                candidates.begin(),
-                candidates.begin() + K - 1,
-                candidates.end(),
-                compare);
             candidates.resize(K);
-        }
-        std::nth_element(candidates.begin(), candidates.begin(), candidates.end(), compare);
 
         results.clear();
 
@@ -251,6 +254,7 @@ namespace IG_LIO
         {
             results.emplace_back(it.first);
         }
+
         return true;
     }
 
@@ -297,48 +301,67 @@ namespace IG_LIO
 
     void FastVoxelMap::filter(pcl::PointCloud<pcl::PointXYZINormal>::Ptr cloud, std::vector<PointCov> &outs)
     {
-
         if (cloud->empty())
             return;
+        std::mutex mtx;
         outs.clear();
         grid_array_.clear();
         grid_map_.clear();
         grid_array_.reserve(cloud->size());
-        for (pcl::PointXYZINormal &p : cloud->points)
-        {
-            Eigen::Vector3d p_vec(p.x, p.y, p.z);
-            size_t idx = hash_util_(p_vec);
-            auto iter = grid_map_.find(idx);
-            if (iter == grid_map_.end())
-            {
-                std::shared_ptr<FastGrid> grid = std::make_shared<FastGrid>();
-                grid->addPoint(p_vec);
-                grid_map_.insert({idx, grid});
-                grid_array_.push_back(grid);
-            }
-            else
-            {
-                iter->second->addPoint(p_vec);
-            }
-        }
 
-        for (std::shared_ptr<FastGrid> &g : grid_array_)
+        tbb::concurrent_unordered_map<size_t, std::shared_ptr<FastGrid>> concurrent_grid_map;
+
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, cloud->size()), [&](const tbb::blocked_range<size_t> &range)
+                          {
+                              std::vector<std::shared_ptr<IG_LIO::FastGrid>> local_grid_array_;
+                              local_grid_array_.reserve(range.size());
+                              for (size_t i = range.begin(); i != range.end(); ++i)
+                              {
+                                  pcl::PointXYZINormal &p = cloud->points[i];
+                                  Eigen::Vector3d p_vec(p.x, p.y, p.z);
+                                  size_t idx = hash_util_(p_vec);
+                                  auto iter = concurrent_grid_map.find(idx);
+
+                                  if (iter == concurrent_grid_map.end())
+                                  {
+                                      std::shared_ptr<FastGrid> grid = std::make_shared<FastGrid>();
+                                      grid->addPoint(p_vec);
+
+                                      concurrent_grid_map.insert(concurrent_grid_map.end(), {idx, grid});
+                                      local_grid_array_.emplace_back(grid);
+                                  }
+                                  else
+                                  {
+                                      iter->second->addPoint(p_vec);
+                                  }
+                              }
+                              std::lock_guard<std::mutex> lck(mtx);
+                              std::copy(local_grid_array_.begin(), local_grid_array_.end(), std::back_inserter(grid_array_)); });
+
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, grid_array_.size()), [&](const tbb::blocked_range<size_t> &range)
+                          {
+        std::vector<PointCov> local_outs;
+        local_outs.reserve(range.size());
+        for (size_t i = range.begin(); i != range.end(); ++i)
         {
+            std::shared_ptr<FastGrid> &g = grid_array_[i];
 
             Eigen::Vector3d points_sum = Eigen::Vector3d::Zero();
             Eigen::Matrix3d cov = Eigen::Matrix3d::Zero();
             size_t points_num = 0;
+
             for (Eigen::Vector3d &r : search_range_)
             {
                 Eigen::Vector3d near = g->centroid + r;
-                auto iter = grid_map_.find(hash_util_(near));
-                if (iter != grid_map_.end())
+                auto iter = concurrent_grid_map.find(hash_util_(near));
+                if (iter != concurrent_grid_map.end())
                 {
                     points_sum += iter->second->centroid;
                     cov += iter->second->centroid * iter->second->centroid.transpose();
                     points_num += 1;
                 }
             }
+
             if (points_num >= 6)
             {
                 Eigen::Vector3d centriod = points_sum / static_cast<double>(points_num);
@@ -347,7 +370,9 @@ namespace IG_LIO
                 Eigen::Vector3d values(1, 1, 1e-3);
                 cov = svd.matrixU() * values.asDiagonal() * svd.matrixV().transpose();
             }
-            outs.emplace_back(g->centroid, cov);
+            local_outs.emplace_back(g->centroid, cov);
         }
+        std::lock_guard<std::mutex> lck(mtx);
+        std::copy(local_outs.begin(), local_outs.end(), std::back_inserter(outs)); });
     }
 } // namespace IG_LIO

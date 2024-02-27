@@ -54,7 +54,7 @@ bt_navigator_rclcpp_node:
 controller_server:
   ros__parameters:
     use_sim_time: True
-    controller_frequency: 40.0
+    controller_frequency: 10.0
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.1
     min_theta_velocity_threshold: 0.001
@@ -179,9 +179,9 @@ controller_server_rclcpp_node:
 local_costmap:
   local_costmap:
     ros__parameters:
-      update_frequency: 15.0
-      publish_frequency: 15.0
-      global_frame: odom
+      update_frequency: 10.0
+      publish_frequency: 10.0
+      global_frame: map
       robot_base_frame: base_link
       use_sim_time: True
       always_send_full_costmap: True
@@ -190,14 +190,14 @@ local_costmap:
       height: 5
       resolution: 0.05
       robot_radius: 0.35
-      plugins: ["static_layer", "inflation_layer"]
-      static_layer:
-        map_topic: /grid_map
-        plugin: "nav2_costmap_2d::StaticLayer"
-        map_subscribe_transient_local: True
+      plugins: ["msg_layer", "inflation_layer"]
+      msg_layer:
+        plugin: "nav2_msg_costmap_plugin::MsgLayer"
+        map_topic: "/local_costmap/grid_map"
+        global_frame: map
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 3.0
+        cost_scaling_factor: 2.0
         inflation_radius: 0.15
   local_costmap_client:
     ros__parameters:
@@ -217,14 +217,17 @@ global_costmap:
       robot_radius: 0.35
       resolution: 0.05
       track_unknown_space: true
-      plugins: ["static_layer","inflation_layer"]
+      plugins: ["static_layer","msg_layer","inflation_layer"]
       static_layer:
-        map_topic: /grid_map
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
+      msg_layer:
+        plugin: "nav2_msg_costmap_plugin::MsgLayer"
+        map_topic: "/grid_map"
+        global_frame: map
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 3.0
+        cost_scaling_factor: 2.0
         inflation_radius: 0.2
       always_send_full_costmap: True
   global_costmap_client:

@@ -47,7 +47,7 @@
 #include "nav2_costmap_2d/layer.hpp"
 #include "nav2_costmap_2d/layered_costmap.hpp"
 
-//TF
+// TF
 #include <tf2/transform_datatypes.h>
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf2_ros/buffer.h>
@@ -55,57 +55,57 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include "tf2_ros/transform_broadcaster.h"
 
-//GRID_MAP
+// GRID_MAP
 #include <grid_map_ros/grid_map_ros.hpp>
 
 namespace nav2_msg_costmap_plugin
 {
 
-class MsgLayer : public nav2_costmap_2d::Layer
-{
-public:
-  MsgLayer();
-
-  virtual void onInitialize();
-  virtual void updateBounds(
-    double robot_x, double robot_y, double robot_yaw, double * min_x,
-    double * min_y,
-    double * max_x,
-    double * max_y);
-  virtual void updateCosts(
-    nav2_costmap_2d::Costmap2D & master_grid,
-    int min_i, int min_j, int max_i, int max_j);
-
-  virtual void reset()
+  class MsgLayer : public nav2_costmap_2d::Layer
   {
-    return;
-  }
+  public:
+    MsgLayer();
 
-  virtual void onFootprintChanged();
+    virtual void onInitialize();
+    virtual void updateBounds(
+        double robot_x, double robot_y, double robot_yaw, double *min_x,
+        double *min_y,
+        double *max_x,
+        double *max_y);
+    virtual void updateCosts(
+        nav2_costmap_2d::Costmap2D &master_grid,
+        int min_i, int min_j, int max_i, int max_j);
 
-  virtual bool isClearable() {return false;}
+    virtual void reset()
+    {
+      return;
+    }
 
-private:
-  double last_min_x_, last_min_y_, last_max_x_, last_max_y_;
+    virtual void onFootprintChanged();
 
-  // Indicates that the entire gradient should be recalculated next time.
-  bool need_recalculation_;
+    virtual bool isClearable() { return false; }
 
-  //Callback For Map
-  void callback(const grid_map_msgs::msg::GridMap::SharedPtr msg);
+  private:
+    double last_min_x_, last_min_y_, last_max_x_, last_max_y_;
 
-  std::string map_topic_;
-  std::string global_frame_;
-  float time_decay_;
-  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
-  std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
-  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
-  std::shared_ptr<grid_map::GridMap> grid_map_;
-  tf2::Transform transform_projected_;
-  std::mutex map_lock_;
-  rclcpp::Subscription<grid_map_msgs::msg::GridMap>::SharedPtr subscriber_;
-};  
+    // Indicates that the entire gradient should be recalculated next time.
+    bool need_recalculation_;
 
-}  // namespace nav2_msg_costmap_plugin
+    // Callback For Map
+    void callback(const grid_map_msgs::msg::GridMap::SharedPtr msg);
 
-#endif  // MSG_LAYER_HPP_
+    std::string map_topic_;
+    std::string global_frame_;
+    float time_decay_;
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+    std::shared_ptr<grid_map::GridMap> grid_map_;
+    tf2::Transform transform_projected_;
+    std::mutex map_lock_;
+    rclcpp::Subscription<grid_map_msgs::msg::GridMap>::SharedPtr subscriber_;
+  };
+
+} // namespace nav2_msg_costmap_plugin
+
+#endif // MSG_LAYER_HPP_
