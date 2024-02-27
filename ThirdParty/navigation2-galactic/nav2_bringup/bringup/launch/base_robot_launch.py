@@ -45,10 +45,7 @@ def generate_launch_description():
     # https://github.com/ros/robot_state_publisher/pull/30
     # TODO(orduno) Substitute with `PushNodeRemapping`
     #              https://github.com/ros2/launch_ros/issues/56
-    remappings = [
-                  ('/local_costmap/grid_map','/grid_map'),
-                  ('/global_costmap/grid_map','/grid_map'),
-                  ('/move_base_simple/goal','/goal_pose')]
+    remappings = [('/move_base_simple/goal','/goal_pose')]
 
     # Create our own temporary YAML files that include substitutions
     param_substitutions = {

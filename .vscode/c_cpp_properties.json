@@ -13,7 +13,8 @@
         "/opt/ros/galactic/opt/yaml_cpp_vendor/include/**",
         "ThirdParty/ws_livox/install/livox_ros_driver2/include/**",
         "install/ig_lio_c_msgs/include",
-        "install/nav2_msgs/include"
+        "install/nav2_msgs/include",
+        "ThirdParty/navigation2-galactic/nav2_msg_costmap_plugin/include/**"
       ],
       "name": "ROS",
       "intelliSenseMode": "gcc-x64",

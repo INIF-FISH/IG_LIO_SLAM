@@ -46,7 +46,6 @@ namespace IG_LIO
         void publishGridMap(const grid_map::GridMap &gridMap_to_pub);
         std::shared_ptr<nav_msgs::msg::OccupancyGrid> createOccupancyGridMsg(const grid_map::GridMap &gridMap);
         void publishOccupancyGridMapMap(std::shared_ptr<nav_msgs::msg::OccupancyGrid> &occupancyGrid_to_pub);
-        void publishOccupancyGridMapLocal(std::shared_ptr<nav_msgs::msg::OccupancyGrid> &occupancyGrid_to_pub);
         void covertMapCallBack(const ig_lio_c_msgs::srv::CovertMap::Request::SharedPtr request,
                                const ig_lio_c_msgs::srv::CovertMap::Response::SharedPtr response);
 
@@ -61,7 +60,6 @@ namespace IG_LIO
         rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_subscription_;
         rclcpp::Publisher<grid_map_msgs::msg::GridMap>::SharedPtr local_grid_map_pub_;
         rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_pub_map_;
-        rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_pub_local_;
         std::deque<pcl::PointCloud<pcl::PointXYZ>::ConstPtr> grid_map_cloud_;
         rclcpp::Service<ig_lio_c_msgs::srv::CovertMap>::SharedPtr CovertMap_Server;
         std::shared_ptr<tf2_ros::Buffer> tfBuffer_;

@@ -40,7 +40,6 @@ namespace IG_LIO
     {
         local_grid_map_pub_ = this->create_publisher<grid_map_msgs::msg::GridMap>(
             "/local_costmap/grid_map", rclcpp::QoS(100).transient_local());
-        occupancy_grid_pub_local_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("/local_costmap/occ_map", rclcpp::QoS(100).transient_local());
         occupancy_grid_pub_map_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", rclcpp::QoS(100).transient_local());
     }
 
@@ -142,8 +141,6 @@ namespace IG_LIO
         RCLCPP_INFO(this->get_logger(), "Received PointCloud2 message. Height: %d, Width: %d", msg->height, msg->width);
         auto gridMap = makeGridMapFromDepth(*msg);
         publishGridMap(gridMap);
-        auto occ_grid = createOccupancyGridMsg(gridMap);
-        publishOccupancyGridMapLocal(occ_grid);
     }
 
     void OccupancyGridConverterNode::publishGridMap(const grid_map::GridMap &gridMap_to_pub)
@@ -195,14 +192,6 @@ namespace IG_LIO
             occupancy_grid.data[nCells - index - 1] = value;
         }
         return std::make_shared<nav_msgs::msg::OccupancyGrid>(occupancy_grid);
-    }
-
-    void OccupancyGridConverterNode::publishOccupancyGridMapLocal(std::shared_ptr<nav_msgs::msg::OccupancyGrid> &occupancyGrid_to_pub)
-    {
-        if (this->occupancy_grid_pub_local_->get_subscription_count() != 0)
-        {
-            this->occupancy_grid_pub_local_->publish(*occupancyGrid_to_pub);
-        }
     }
 
     void OccupancyGridConverterNode::publishOccupancyGridMapMap(std::shared_ptr<nav_msgs::msg::OccupancyGrid> &occupancyGrid_to_pub)

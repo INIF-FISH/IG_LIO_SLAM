@@ -23,7 +23,7 @@ namespace nav2_msg_costmap_plugin
     {
         auto node = node_.lock();
         declareParameter("map_topic", rclcpp::ParameterValue("grid_map"));
-        declareParameter("global_frame", rclcpp::ParameterValue("odom"));
+        declareParameter("global_frame", rclcpp::ParameterValue("map"));
         declareParameter("map_time_decay", rclcpp::ParameterValue(0.2));
         grid_map_ = std::make_shared<grid_map::GridMap>();
         node->get_parameter(name_ + "." + "map_topic", map_topic_);
@@ -33,7 +33,7 @@ namespace nav2_msg_costmap_plugin
         tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(rclcpp_node_);
         tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
         subscriber_ = node->create_subscription<grid_map_msgs::msg::GridMap>(map_topic_,
-                                                                             rclcpp::QoS(rclcpp::KeepLast(1)).best_effort(),
+                                                                             rclcpp::QoS(100).best_effort().transient_local(),
                                                                              std::bind(&MsgLayer::callback,
                                                                                        this, std::placeholders::_1));
         need_recalculation_ = false;
@@ -93,10 +93,10 @@ namespace nav2_msg_costmap_plugin
             grid_map::GridMapRosConverter::fromMessage(*msg, grid_map);
             map_ptr = std::make_shared<grid_map::GridMap>(grid_map);
         }
-
-        map_lock_.lock();
-        grid_map_ = map_ptr;
-        map_lock_.unlock();
+        {
+            std::lock_guard<std::mutex> lck(map_lock_);
+            grid_map_ = map_ptr;
+        }
     }
 
     void MsgLayer::updateBounds(
@@ -139,44 +139,35 @@ namespace nav2_msg_costmap_plugin
         min_j = std::max(0, min_j);
         max_i = std::min(static_cast<int>(size_x), max_i);
         max_j = std::min(static_cast<int>(size_y), max_j);
-        map_lock_.lock();
-        for (int j = min_j; j < max_j; j++)
         {
-            for (int i = min_i; i < max_i; i++)
+            std::lock_guard<std::mutex> lck(map_lock_);
+            for (int j = min_j; j < max_j; j++)
             {
-                double worldx, worldy;
-                master_grid.mapToWorld(i, j, worldx, worldy);
-                Eigen::Vector2d vec2d_map(worldx, worldy);
-                Eigen::Array2i idx_map;
-                int index = master_grid.getIndex(i, j);
-                if (grid_map_->isInside(vec2d_map))
+                for (int i = min_i; i < max_i; i++)
                 {
-                    double origin_cost = master_array[index];
-                    double slope = grid_map_->atPosition("slope", vec2d_map);
-                    double elevation = grid_map_->atPosition("elevation", vec2d_map) + 0.6;
-                    if (!std::isnan(elevation))
+                    double worldx, worldy;
+                    master_grid.mapToWorld(i, j, worldx, worldy);
+                    Eigen::Vector2d vec2d_map(worldx, worldy);
+                    Eigen::Array2i idx_map;
+                    int index = master_grid.getIndex(i, j);
+                    if (grid_map_->isInside(vec2d_map))
                     {
-                        double cost;
+                        double origin_cost = master_array[index];
+                        double slope = grid_map_->atPosition("slope", vec2d_map);
                         if (!std::isnan(slope))
-                            cost = slope * 254;
-                        else
-                            cost = (elevation + 0.2) * 254;
+                        {
+                            double cost;
+                            if (slope > 0.5)
+                                cost = 254;
+                            else
+                                cost = 0;
 
-                        if (origin_cost != 0)
-                            cost = (0.8 * origin_cost + 0.6 * cost);
-
-                        if (cost > 200)
-                            cost = 254;
-                        else
-                            // cost = 0;
-                            continue;
-
-                        master_array[index] = cost;
+                            master_array[index] = cost;
+                        }
                     }
                 }
             }
         }
-        map_lock_.unlock();
     }
 
 } // namespace nav2_msg_costmap_plugin
