@@ -83,7 +83,8 @@
         "numericaldiff": "cpp",
         "slist": "cpp",
         "hash_map": "cpp",
-        "hash_set": "cpp"
+        "hash_set": "cpp",
+        "*.txx": "cpp"
     },
     "python.analysis.extraPaths": [
         "/opt/ros/galactic/lib/python3.8/site-packages"

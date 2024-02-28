@@ -3,7 +3,7 @@
 namespace IG_LIO
 {
     OccupancyGridConverterNode::OccupancyGridConverterNode(const rclcpp::NodeOptions &options)
-        : Node("map_builder", options), filterChain_("grid_map::GridMap")
+        : Node("map_builder", options), filterChain_local_("grid_map::GridMap"), filterChain_map_("grid_map::GridMap")
     {
         param_respond();
         initSubscribers();
@@ -23,13 +23,15 @@ namespace IG_LIO
         this->declare_parameter<double>("occupancyGriddataMin", -0.1);
         this->declare_parameter<double>("occupancyGriddataMax", 10.0);
         this->declare_parameter<double>("min_distance", 0.4);
-        this->declare_parameter("filter_chain_parameter_name", std::string("filters"));
+        this->declare_parameter("filter_chain_parameter_name_local", std::string("filters_local"));
+        this->declare_parameter("filter_chain_parameter_name_map", std::string("filters_map"));
         this->get_parameter("robot_frame", robot_frame);
         this->get_parameter("grid_map_cloud_size", grid_map_cloud_size);
         this->get_parameter("occupancyGriddataMin", occupancyGriddataMin);
         this->get_parameter("occupancyGriddataMax", occupancyGriddataMax);
         this->get_parameter("min_distance", min_distance);
-        this->get_parameter("filter_chain_parameter_name", filterChainParametersName_);
+        this->get_parameter("filter_chain_parameter_name_local", filterChainParametersName_local_);
+        this->get_parameter("filter_chain_parameter_name_map", filterChainParametersName_map_);
     }
 
     void OccupancyGridConverterNode::initSubscribers()
@@ -42,7 +44,7 @@ namespace IG_LIO
     {
         local_grid_map_pub_ = this->create_publisher<grid_map_msgs::msg::GridMap>(
             "/local_costmap/grid_map", rclcpp::QoS(100).transient_local());
-        occupancy_grid_pub_map_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", rclcpp::QoS(100).transient_local());
+        occupancy_grid_pub_map_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", rclcpp::QoS(100).reliable().transient_local());
     }
 
     void OccupancyGridConverterNode::initSerivces()
@@ -58,15 +60,27 @@ namespace IG_LIO
         tfListener_ = std::make_shared<tf2_ros::TransformListener>(*tfBuffer_);
         gridMapPclLoader = std::make_shared<grid_map::GridMapPclLoader>(this->get_logger());
         gridMapPclLoader->loadParameters(gm::getParameterPath());
-        if (filterChain_.configure(
-                filterChainParametersName_, this->get_node_logging_interface(),
+        if (filterChain_local_.configure(
+                filterChainParametersName_local_, this->get_node_logging_interface(),
                 this->get_node_parameters_interface()))
         {
-            RCLCPP_INFO(this->get_logger(), "Filter chain configured.");
+            RCLCPP_INFO(this->get_logger(), "Filter chain local configured.");
         }
         else
         {
-            RCLCPP_ERROR(this->get_logger(), "Could not configure the filter chain!");
+            RCLCPP_ERROR(this->get_logger(), "Could not configure the filter chain local!");
+            rclcpp::shutdown();
+            return;
+        }
+        if (filterChain_map_.configure(
+                filterChainParametersName_map_, this->get_node_logging_interface(),
+                this->get_node_parameters_interface()))
+        {
+            RCLCPP_INFO(this->get_logger(), "Filter chain map configured.");
+        }
+        else
+        {
+            RCLCPP_ERROR(this->get_logger(), "Could not configure the filter chain map!");
             rclcpp::shutdown();
             return;
         }
@@ -121,9 +135,9 @@ namespace IG_LIO
         gridMap.setFrameId("map");
         gridMap.setTimestamp(this->get_clock()->now().nanoseconds());
         grid_map::GridMap outputMap;
-        if (!filterChain_.update(gridMap, outputMap))
+        if (!filterChain_local_.update(gridMap, outputMap))
         {
-            RCLCPP_ERROR(this->get_logger(), "Could not update the grid map filter chain!");
+            RCLCPP_ERROR(this->get_logger(), "Could not update the grid map filter chain local!");
             return gridMap;
         }
         grid_map::Size size = outputMap.getSize();
@@ -148,7 +162,13 @@ namespace IG_LIO
         auto gridMap = gridMapPclLoader->getGridMap();
         gridMap.setFrameId("map");
         gridMap.setTimestamp(this->get_clock()->now().nanoseconds());
-        return gridMap;
+        grid_map::GridMap outputMap;
+        if (!filterChain_map_.update(gridMap, outputMap))
+        {
+            RCLCPP_ERROR(this->get_logger(), "Could not update the grid map filter chain map!");
+            return gridMap;
+        }
+        return outputMap;
     }
 
     void OccupancyGridConverterNode::pointCloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
@@ -189,19 +209,19 @@ namespace IG_LIO
         occupancy_grid.data.resize(nCells);
         for (grid_map::GridMapIterator iterator(gridMap); !iterator.isPastEnd(); ++iterator)
         {
-            float value = gridMap.at("elevation", *iterator);
+            float value = gridMap.at("slope", *iterator);
             if (std::isnan(value))
             {
                 value = nav2_util::OCC_GRID_UNKNOWN;
             }
             else
             {
-                if (value > occupancyGriddataMin && value < occupancyGriddataMax)
-                    value = nav2_util::OCC_GRID_OCCUPIED;
-                else if (value > occupancyGriddataMax)
-                    value = nav2_util::OCC_GRID_UNKNOWN;
-                else
+                if (value < occupancyGriddataMin)
                     value = nav2_util::OCC_GRID_FREE;
+                else if (value > occupancyGriddataMin && value < occupancyGriddataMax)
+                    value = nav2_util::OCC_GRID_OCCUPIED;
+                else
+                    value = nav2_util::OCC_GRID_UNKNOWN;
             }
             size_t index = grid_map::getLinearIndexFromIndex(iterator.getUnwrappedIndex(), gridMap.getSize(), false);
             occupancy_grid.data[nCells - index - 1] = value;
@@ -220,6 +240,14 @@ namespace IG_LIO
     void OccupancyGridConverterNode::covertMapCallBack(const ig_lio_c_msgs::srv::CovertMap::Request::SharedPtr request,
                                                        const ig_lio_c_msgs::srv::CovertMap::Response::SharedPtr response)
     {
+        Magick::InitializeMagick(nullptr);
+        if (request->pcd_path.empty())
+        {
+            PCL_ERROR("PCD file_path empty !\n");
+            response->status = 0;
+            response->message = "Failed to read PCD file";
+            return;
+        }
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
         if (pcl::io::loadPCDFile<pcl::PointXYZ>(request->pcd_path, *cloud) == -1)
         {
@@ -231,9 +259,218 @@ namespace IG_LIO
         auto gridMap = makeGridMap(cloud);
         auto occ_grid = createOccupancyGridMsg(gridMap);
         occ_grid->header.frame_id = "map";
+        SaveParameters save_parameters;
+        {
+            save_parameters.image_format = request->image_format;
+        }
+        if (request->map_file_name.empty())
+        {
+            std::cout << "Non map_file_name, using map." << std::endl;
+            save_parameters.map_file_name = "map";
+        }
+        else
+        {
+            save_parameters.map_file_name = request->map_file_name;
+        }
+        if (request->occupied_thresh == 0.0)
+        {
+            std::cout << "Non occupied_thresh, using 0.65." << std::endl;
+            save_parameters.occupied_thresh = 0.65;
+        }
+        else
+        {
+            save_parameters.occupied_thresh = request->occupied_thresh;
+        }
+        if (request->free_thresh == 0.0)
+        {
+            std::cout << "Non free_thresh, using 0.25." << std::endl;
+            save_parameters.free_thresh = 0.25;
+        }
+        else
+        {
+            save_parameters.occupied_thresh = request->occupied_thresh;
+        }
+        try
+        {
+            save_parameters.mode = nav2_map_server::map_mode_from_string(request->map_mode);
+        }
+        catch (std::invalid_argument &)
+        {
+            save_parameters.mode = nav2_map_server::MapMode::Trinary;
+            std::cout << "Map mode parameter not recognized: " << request->map_mode.c_str() << ", using default value (trinary)" << std::endl;
+        }
+        if (save_parameters.image_format == "")
+        {
+            save_parameters.image_format = save_parameters.mode == nav2_map_server::MapMode::Scale ? "png" : "pgm";
+            std::cout << "[WARN] [covertMapCallBack]: Image format unspecified. Setting it to: " << save_parameters.image_format << std::endl;
+        }
+
+        std::transform(
+            save_parameters.image_format.begin(),
+            save_parameters.image_format.end(),
+            save_parameters.image_format.begin(),
+            [](unsigned char c)
+            { return std::tolower(c); });
+
+        const std::vector<std::string> BLESSED_FORMATS{"bmp", "pgm", "png"};
+        if (
+            std::find(BLESSED_FORMATS.begin(), BLESSED_FORMATS.end(), save_parameters.image_format) ==
+            BLESSED_FORMATS.end())
+        {
+            std::stringstream ss;
+            bool first = true;
+            for (auto &format_name : BLESSED_FORMATS)
+            {
+                if (!first)
+                {
+                    ss << ", ";
+                }
+                ss << "'" << format_name << "'";
+                first = false;
+            }
+            std::cout << "[WARN] [covertMapCallBack]: Requested image format '" << save_parameters.image_format << "' is not one of the recommended formats: " << ss.str() << std::endl;
+        }
+        const std::string FALLBACK_FORMAT = "png";
+
+        try
+        {
+            Magick::CoderInfo info(save_parameters.image_format);
+            if (!info.isWritable())
+            {
+                std::cout << "[WARN] [covertMapCallBack]: Format '" << save_parameters.image_format << "' is not writable. Using '" << FALLBACK_FORMAT << "' instead" << std::endl;
+                save_parameters.image_format = FALLBACK_FORMAT;
+            }
+        }
+        catch (Magick::ErrorOption &e)
+        {
+            std::cout << "[WARN] [covertMapCallBack]: Format '" << save_parameters.image_format << "' is not usable. Using '" << FALLBACK_FORMAT << "' instead:" << std::endl
+                      << e.what() << std::endl;
+            save_parameters.image_format = FALLBACK_FORMAT;
+        }
+
+        if (
+            save_parameters.mode == nav2_map_server::MapMode::Scale &&
+            (save_parameters.image_format == "pgm" ||
+             save_parameters.image_format == "jpg" ||
+             save_parameters.image_format == "jpeg"))
+        {
+            std::cout << "[WARN] [covertMapCallBack]: Map mode 'scale' requires transparency, but format '" << save_parameters.image_format << "' does not support it. Consider switching image format to 'png'." << std::endl;
+        }
+        tryWriteMapToFile(*occ_grid, save_parameters);
         publishOccupancyGridMapMap(occ_grid);
         response->status = 1;
         response->message = "Success to corvert";
+    }
+
+    void OccupancyGridConverterNode::tryWriteMapToFile(
+        const nav_msgs::msg::OccupancyGrid &map,
+        const SaveParameters &save_parameters)
+    {
+        std::cout << "[INFO] [tryWriteMapToFile]: Received a " << map.info.width << " X " << map.info.height << " map @ " << map.info.resolution << " m/pix" << std::endl;
+
+        std::string mapdatafile = save_parameters.map_file_name + "." + save_parameters.image_format;
+        {
+            Magick::Image image({map.info.width, map.info.height}, "red");
+
+            image.type(
+                save_parameters.mode == nav2_map_server::MapMode::Scale ? Magick::TrueColorMatteType : Magick::GrayscaleType);
+            image.depth(8);
+
+            int free_thresh_int = std::rint(save_parameters.free_thresh * 100.0);
+            int occupied_thresh_int = std::rint(save_parameters.occupied_thresh * 100.0);
+
+            for (size_t y = 0; y < map.info.height; y++)
+            {
+                for (size_t x = 0; x < map.info.width; x++)
+                {
+                    int8_t map_cell = map.data[map.info.width * (map.info.height - y - 1) + x];
+
+                    Magick::Color pixel;
+
+                    switch (save_parameters.mode)
+                    {
+                    case nav2_map_server::MapMode::Trinary:
+                        if (map_cell < 0 || 100 < map_cell)
+                        {
+                            pixel = Magick::ColorGray(205 / 255.0);
+                        }
+                        else if (map_cell <= free_thresh_int)
+                        {
+                            pixel = Magick::ColorGray(254 / 255.0);
+                        }
+                        else if (occupied_thresh_int <= map_cell)
+                        {
+                            pixel = Magick::ColorGray(0 / 255.0);
+                        }
+                        else
+                        {
+                            pixel = Magick::ColorGray(205 / 255.0);
+                        }
+                        break;
+                    case nav2_map_server::MapMode::Scale:
+                        if (map_cell < 0 || 100 < map_cell)
+                        {
+                            pixel = Magick::ColorGray{0.5};
+                            pixel.alphaQuantum(TransparentOpacity);
+                        }
+                        else
+                        {
+                            pixel = Magick::ColorGray{(100.0 - map_cell) / 100.0};
+                        }
+                        break;
+                    case nav2_map_server::MapMode::Raw:
+                        Magick::Quantum q;
+                        if (map_cell < 0 || 100 < map_cell)
+                        {
+                            q = MaxRGB;
+                        }
+                        else
+                        {
+                            q = map_cell / 255.0 * MaxRGB;
+                        }
+                        pixel = Magick::Color(q, q, q);
+                        break;
+                    default:
+                        std::cerr << "[ERROR] [tryWriteMapToFile]: Map mode should be Trinary, Scale or Raw" << std::endl;
+                        throw std::runtime_error("Invalid map mode");
+                    }
+                    image.pixelColor(x, y, pixel);
+                }
+            }
+
+            std::cout << "[INFO] [tryWriteMapToFile]: Writing map occupancy data to " << mapdatafile << std::endl;
+            image.write(mapdatafile);
+        }
+
+        std::string mapmetadatafile = save_parameters.map_file_name + ".yaml";
+        {
+            std::ofstream yaml(mapmetadatafile);
+
+            geometry_msgs::msg::Quaternion orientation = map.info.origin.orientation;
+            tf2::Matrix3x3 mat(tf2::Quaternion(orientation.x, orientation.y, orientation.z, orientation.w));
+            double yaw, pitch, roll;
+            mat.getEulerYPR(yaw, pitch, roll);
+
+            YAML::Emitter e;
+            e << YAML::Precision(3);
+            e << YAML::BeginMap;
+            e << YAML::Key << "image" << YAML::Value << mapdatafile;
+            e << YAML::Key << "mode" << YAML::Value << map_mode_to_string(save_parameters.mode);
+            e << YAML::Key << "resolution" << YAML::Value << map.info.resolution;
+            e << YAML::Key << "origin" << YAML::Flow << YAML::BeginSeq << map.info.origin.position.x << map.info.origin.position.y << yaw << YAML::EndSeq;
+            e << YAML::Key << "negate" << YAML::Value << 0;
+            e << YAML::Key << "occupied_thresh" << YAML::Value << save_parameters.occupied_thresh;
+            e << YAML::Key << "free_thresh" << YAML::Value << save_parameters.free_thresh;
+
+            if (!e.good())
+            {
+                std::cout << "[WARN] [tryWriteMapToFile]: YAML writer failed with an error " << e.GetLastError() << ". The map metadata may be invalid." << std::endl;
+            }
+
+            std::cout << "[INFO] [tryWriteMapToFile]: Writing map metadata to " << mapmetadatafile << std::endl;
+            std::ofstream(mapmetadatafile) << e.c_str();
+        }
+        std::cout << "[INFO] [tryWriteMapToFile]: Map saved" << std::endl;
     }
 } // namespace IG_LIO
 

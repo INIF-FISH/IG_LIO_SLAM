@@ -61,11 +61,11 @@ occupancy_grid_converter:
     use_sim_time: true
     robot_frame: base_link
     grid_map_cloud_size: 10
-    occupancyGriddataMin: -0.5
-    occupancyGriddataMax: 10.0
+    occupancyGriddataMin: 0.65
+    occupancyGriddataMax: 20.0
     min_distance: 0.4
 
-    filters:
+    filters_local:
       filter1:
         name: surface_normals
         type: gridMapFilters/NormalVectorsFilter
@@ -76,6 +76,31 @@ occupancy_grid_converter:
           normal_vector_positive_axis: z
 
       filter2:
+        name: slope
+        type: gridMapFilters/MathExpressionFilter
+        params:
+          output_layer: slope
+          expression: acos(normal_vectors_z)
+  
+    filters_map:
+      filter1:
+        name: inpaint
+        type: gridMapCv/InpaintFilter
+        params:
+          input_layer: elevation
+          output_layer: elevation_inpainted
+          radius: 0.1
+
+      filter2:
+        name: surface_normals
+        type: gridMapFilters/NormalVectorsFilter
+        params:
+          input_layer: elevation_inpainted
+          output_layers_prefix: normal_vectors_
+          radius: 0.2
+          normal_vector_positive_axis: z
+
+      filter3:
         name: slope
         type: gridMapFilters/MathExpressionFilter
         params:

@@ -3,7 +3,7 @@ project(ig_lio_c)
 add_compile_options(-std=c++17)
 add_compile_definitions(SOPHUS_USE_BASIC_LOGGING)
 set(CMAKE_BUILD_TYPE Release)
-
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake_modules)
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic -O3)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mpopcnt")
@@ -57,6 +57,8 @@ find_package(grid_map_filters REQUIRED)
 find_package(ig_lio_c_msgs REQUIRED)
 find_package(nav2_util REQUIRED)
 find_package(TBB REQUIRED)
+find_package(nav2_map_server REQUIRED)
+find_package(GRAPHICSMAGICKCPP REQUIRED)
 
 set(dependencies
   rclcpp
@@ -79,6 +81,8 @@ set(dependencies
   nav2_util
   TBB
   grid_map_filters
+  nav2_map_server
+  GRAPHICSMAGICKCPP
 )
 
 include_directories(
