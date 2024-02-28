@@ -195,6 +195,7 @@ local_costmap:
         plugin: "nav2_msg_costmap_plugin::MsgLayer"
         map_topic: "/local_costmap/grid_map"
         global_frame: map
+        max_slope: 0.5
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 2.0
@@ -225,6 +226,7 @@ global_costmap:
         plugin: "nav2_msg_costmap_plugin::MsgLayer"
         map_topic: "/local_costmap/grid_map"
         global_frame: map
+        max_slope: 0.5
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 2.0

@@ -25,10 +25,12 @@ namespace nav2_msg_costmap_plugin
         declareParameter("map_topic", rclcpp::ParameterValue("grid_map"));
         declareParameter("global_frame", rclcpp::ParameterValue("map"));
         declareParameter("map_time_decay", rclcpp::ParameterValue(0.2));
+        declareParameter("max_slope", rclcpp::ParameterValue(0.5));
         grid_map_ = std::make_shared<grid_map::GridMap>();
         node->get_parameter(name_ + "." + "map_topic", map_topic_);
         node->get_parameter(name_ + "." + "global_frame", global_frame_);
         node->get_parameter(name_ + "." + "map_time_decay", time_decay_);
+        node->get_parameter(name_ + "." + "max_slope", max_slope);
         tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node->get_clock());
         tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(rclcpp_node_);
         tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -157,7 +159,7 @@ namespace nav2_msg_costmap_plugin
                         if (!std::isnan(slope))
                         {
                             double cost;
-                            if (slope > 0.5)
+                            if (slope > max_slope)
                                 cost = 254;
                             else
                                 cost = 0;

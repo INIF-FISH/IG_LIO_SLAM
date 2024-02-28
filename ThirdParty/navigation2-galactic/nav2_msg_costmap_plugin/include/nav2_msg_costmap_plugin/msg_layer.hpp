@@ -97,6 +97,7 @@ namespace nav2_msg_costmap_plugin
     std::string map_topic_;
     std::string global_frame_;
     float time_decay_;
+    double max_slope = 0.5;
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
