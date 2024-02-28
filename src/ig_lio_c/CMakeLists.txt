@@ -132,6 +132,7 @@ ament_target_dependencies(occupancy_grid_converter
 target_link_libraries(occupancy_grid_converter
   ${Eigen3_LIBRARIES}
   ${PCL_LIBRARIES}
+  TBB::tbb
 )
 
 install(TARGETS

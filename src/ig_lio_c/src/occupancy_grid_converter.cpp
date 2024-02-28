@@ -106,19 +106,25 @@ namespace IG_LIO
         Eigen::Vector3d xyz_base = {tf_map_to_base.transform.translation.x,
                                     tf_map_to_base.transform.translation.y,
                                     tf_map_to_base.transform.translation.z};
-        RCLCPP_INFO_STREAM(this->get_logger(), "X: " << tf_map_to_base.transform.translation.x);
-        RCLCPP_INFO_STREAM(this->get_logger(), "Y: " << tf_map_to_base.transform.translation.y);
         Eigen::Vector2d xy_base = {tf_map_to_base.transform.translation.x,
                                    tf_map_to_base.transform.translation.y};
-        for (size_t i = 0; i < cloud_ptr->points.size(); i++)
-        {
-            Eigen::Vector3d xyz_pt = {cloud_ptr->points[i].x,
-                                      cloud_ptr->points[i].y,
-                                      cloud_ptr->points[i].z};
-            Eigen::Vector3d dxyz = xyz_pt - xyz_base;
-            if (dxyz.norm() > point_min_dist_ && dxyz.norm() < point_max_dist_)
-                (*cloud_filtered).points.push_back(cloud_ptr->points[i]);
-        }
+        std::mutex mtx;
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, cloud_ptr->points.size()),
+                          [&](const tbb::blocked_range<size_t> &range)
+                          {
+                              for (size_t i = range.begin(); i != range.end(); ++i)
+                              {
+                                  Eigen::Vector3d xyz_pt = {cloud_ptr->points[i].x,
+                                                            cloud_ptr->points[i].y,
+                                                            cloud_ptr->points[i].z};
+                                  Eigen::Vector3d dxyz = xyz_pt - xyz_base;
+                                  if (dxyz.norm() > point_min_dist_ && dxyz.norm() < point_max_dist_)
+                                  {
+                                      std::lock_guard<std::mutex> lck(mtx);
+                                      (*cloud_filtered).points.push_back(cloud_ptr->points[i]);
+                                  }
+                              }
+                          });
         if (grid_map_cloud_.size() == grid_map_cloud_size)
             grid_map_cloud_.pop_front();
         grid_map_cloud_.push_back(cloud_filtered);

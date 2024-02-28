@@ -89,7 +89,7 @@ occupancy_grid_converter:
         params:
           input_layer: elevation
           output_layer: elevation_inpainted
-          radius: 0.1
+          radius: 0.05
 
       filter2:
         name: surface_normals

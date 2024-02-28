@@ -24,6 +24,8 @@
 #include <nav2_map_server/map_mode.hpp>
 #include <Magick++.h>
 
+#include <tbb/parallel_for.h>
+
 namespace IG_LIO
 {
     using namespace std::chrono;
