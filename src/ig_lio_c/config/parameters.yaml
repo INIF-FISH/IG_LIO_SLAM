@@ -63,6 +63,7 @@ occupancy_grid_converter:
     grid_map_cloud_size: 10
     occupancyGriddataMin: -0.5
     occupancyGriddataMax: 10.0
+    min_distance: 0.4
 
     filters:
       filter1:

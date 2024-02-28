@@ -22,11 +22,13 @@ namespace IG_LIO
         this->declare_parameter<int>("grid_map_cloud_size", 10);
         this->declare_parameter<double>("occupancyGriddataMin", -0.1);
         this->declare_parameter<double>("occupancyGriddataMax", 10.0);
+        this->declare_parameter<double>("min_distance", 0.4);
         this->declare_parameter("filter_chain_parameter_name", std::string("filters"));
         this->get_parameter("robot_frame", robot_frame);
         this->get_parameter("grid_map_cloud_size", grid_map_cloud_size);
         this->get_parameter("occupancyGriddataMin", occupancyGriddataMin);
         this->get_parameter("occupancyGriddataMax", occupancyGriddataMax);
+        this->get_parameter("min_distance", min_distance);
         this->get_parameter("filter_chain_parameter_name", filterChainParametersName_);
     }
 
@@ -79,7 +81,6 @@ namespace IG_LIO
         geometry_msgs::msg::TransformStamped tf_map_to_base;
         try
         {
-            geometry_msgs::msg::TransformStamped tf_msg;
             tf_map_to_base = tfBuffer_->lookupTransform("map", "base_link", cloud_to_make.header.stamp, rclcpp::Duration::from_seconds(0.1));
         }
         catch (const tf2::TransformException &ex)
@@ -93,6 +94,8 @@ namespace IG_LIO
                                     tf_map_to_base.transform.translation.z};
         RCLCPP_INFO_STREAM(this->get_logger(), "X: " << tf_map_to_base.transform.translation.x);
         RCLCPP_INFO_STREAM(this->get_logger(), "Y: " << tf_map_to_base.transform.translation.y);
+        Eigen::Vector2d xy_base = {tf_map_to_base.transform.translation.x,
+                                   tf_map_to_base.transform.translation.y};
         for (size_t i = 0; i < cloud_ptr->points.size(); i++)
         {
             Eigen::Vector3d xyz_pt = {cloud_ptr->points[i].x,
@@ -114,6 +117,7 @@ namespace IG_LIO
         gridMapPclLoader->initializeGridMapGeometryFromInputCloud();
         gridMapPclLoader->addLayerFromInputCloud("elevation");
         auto gridMap = gridMapPclLoader->getGridMap();
+
         gridMap.setFrameId("map");
         gridMap.setTimestamp(this->get_clock()->now().nanoseconds());
         grid_map::GridMap outputMap;
@@ -121,6 +125,17 @@ namespace IG_LIO
         {
             RCLCPP_ERROR(this->get_logger(), "Could not update the grid map filter chain!");
             return gridMap;
+        }
+        grid_map::Size size = outputMap.getSize();
+        for (grid_map::GridMapIterator iterator(gridMap); !iterator.isPastEnd(); ++iterator)
+        {
+            grid_map::Index index = *iterator;
+            Eigen::Vector2d position;
+            outputMap.getPosition(index, position);
+            if ((position - xy_base).norm() < min_distance)
+            {
+                outputMap.at("slope", index) = 0.;
+            }
         }
         return outputMap;
     }

@@ -56,6 +56,7 @@ namespace IG_LIO
         double occupancyGriddataMax = 10.0;
         double point_min_dist_ = 0.4;
         double point_max_dist_ = 2.5;
+        double min_distance = 0.4;
         std::shared_ptr<grid_map::GridMapPclLoader> gridMapPclLoader;
         rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_subscription_;
         rclcpp::Publisher<grid_map_msgs::msg::GridMap>::SharedPtr local_grid_map_pub_;

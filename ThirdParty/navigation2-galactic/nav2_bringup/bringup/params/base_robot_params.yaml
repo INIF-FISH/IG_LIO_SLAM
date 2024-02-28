@@ -223,7 +223,7 @@ global_costmap:
         map_subscribe_transient_local: True
       msg_layer:
         plugin: "nav2_msg_costmap_plugin::MsgLayer"
-        map_topic: "/grid_map"
+        map_topic: "/local_costmap/grid_map"
         global_frame: map
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"

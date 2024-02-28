@@ -87,7 +87,7 @@ namespace nav2_msg_costmap_plugin
 
   private:
     double last_min_x_, last_min_y_, last_max_x_, last_max_y_;
-
+    
     // Indicates that the entire gradient should be recalculated next time.
     bool need_recalculation_;
 

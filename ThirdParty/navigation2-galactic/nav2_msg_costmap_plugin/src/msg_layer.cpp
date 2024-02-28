@@ -33,7 +33,7 @@ namespace nav2_msg_costmap_plugin
         tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(rclcpp_node_);
         tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
         subscriber_ = node->create_subscription<grid_map_msgs::msg::GridMap>(map_topic_,
-                                                                             rclcpp::QoS(100).best_effort().transient_local(),
+                                                                             rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().transient_local(),
                                                                              std::bind(&MsgLayer::callback,
                                                                                        this, std::placeholders::_1));
         need_recalculation_ = false;
