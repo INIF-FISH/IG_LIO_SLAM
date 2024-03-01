@@ -10,7 +10,15 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ig_lio_c_msgs</buildtool_depend>
   <buildtool_depend>nav2_util</buildtool_depend>
-  <buildtool_depend> livox_ros_driver2</buildtool_depend>
+  <buildtool_depend>livox_ros_driver2</buildtool_depend>
+  <buildtool_depend>grid_map_msgs</buildtool_depend>
+  <buildtool_depend>grid_map_core</buildtool_depend>
+  <buildtool_depend>nav_msgs</buildtool_depend>
+  <buildtool_depend>grid_map_filters</buildtool_depend>
+  <buildtool_depend>ig_lio_c_msgs</buildtool_depend>
+  <buildtool_depend>nav2_map_server</buildtool_depend>
+  <buildtool_depend>grid_map_pcl</buildtool_depend>
+  <buildtool_depend>grid_map_ros</buildtool_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

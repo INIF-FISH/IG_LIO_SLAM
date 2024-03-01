@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(nav2_costmap_2d)
+add_compile_options(-std=c++17)
 
 find_package(ament_cmake REQUIRED)
 find_package(geometry_msgs REQUIRED)
