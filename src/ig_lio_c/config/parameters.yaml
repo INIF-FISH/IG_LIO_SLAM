@@ -45,7 +45,7 @@ map_builder_node:
 
     localizer:
       reloc_on_init: false
-      pcd_path: "/home/nine-fish/4.pcd"
+      pcd_path: "/home/nine-fish/7.pcd"
       xyz_rpy: [0.0, 0.0, 0.0, 3.14, 0.0, 3.14]
       refine_resolution: 0.15
       rough_resolution: 0.3

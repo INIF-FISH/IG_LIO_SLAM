@@ -198,7 +198,7 @@ namespace IG_LIO
         publishBaseLink();
         if (localizer_reloc_on_init)
         {
-            std::shared_ptr<ig_lio_c_msgs::srv::ReLoc_Request> request;
+            std::shared_ptr<ig_lio_c_msgs::srv::ReLoc_Request> request(new ig_lio_c_msgs::srv::ReLoc_Request);
             request->pcd_path = localizer_pcd_path;
             request->x = localizer_xyz_rpy[0];
             request->y = localizer_xyz_rpy[1];
@@ -536,9 +536,20 @@ namespace IG_LIO
             response->message = "Empty cloud!";
             RCLCPP_WARN(this->get_logger(), "Failed to save map !");
         }
+        pcl::PointCloud<pcl::PointXYZINormal>::Ptr cloud_SOR_filtered(new pcl::PointCloud<pcl::PointXYZINormal>);
+        pcl::StatisticalOutlierRemoval<pcl::PointXYZINormal> sor;
+        sor.setInputCloud(cloud);
+        sor.setMeanK(50);
+        sor.setStddevMulThresh(1.0);
+        sor.filter(*cloud_SOR_filtered);
+        pcl::PointCloud<pcl::PointXYZINormal>::Ptr cloud_VG_filtered(new pcl::PointCloud<pcl::PointXYZINormal>);
+        pcl::VoxelGrid<pcl::PointXYZINormal> vg;
+        vg.setInputCloud(cloud_SOR_filtered);
+        vg.setLeafSize(0.02f, 0.02f, 0.02f);
+        vg.filter(*cloud_VG_filtered);
         response->status = true;
         response->message = "Save map success!";
-        writer_.writeBinaryCompressed(file_path, *cloud);
+        writer_.writeBinaryCompressed(file_path, *cloud_VG_filtered);
         RCLCPP_INFO(this->get_logger(), "Success to save map !");
     }
 

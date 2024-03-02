@@ -262,12 +262,7 @@ namespace IG_LIO
             response->message = "Failed to read PCD file";
             return;
         }
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::VoxelGrid<pcl::PointCloud<pcl::PointXYZ>> sor;
-        sor.setInputCloud(cloud);
-        sor.setLeafSize(0.01f, 0.01f, 0.01f);
-        sor.filter(*cloud_filtered);
-        auto gridMap = makeGridMap(cloud_filtered);
+        auto gridMap = makeGridMap(cloud);
         auto occ_grid = createOccupancyGridMsg(gridMap);
         occ_grid->header.frame_id = "map";
         SaveParameters save_parameters;
