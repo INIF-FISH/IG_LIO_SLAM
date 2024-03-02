@@ -84,23 +84,15 @@ occupancy_grid_converter:
   
     filters_map:
       filter1:
-        name: inpaint
-        type: gridMapCv/InpaintFilter
-        params:
-          input_layer: elevation
-          output_layer: elevation_inpainted
-          radius: 0.05
-
-      filter2:
         name: surface_normals
         type: gridMapFilters/NormalVectorsFilter
         params:
-          input_layer: elevation_inpainted
+          input_layer: elevation
           output_layers_prefix: normal_vectors_
           radius: 0.2
           normal_vector_positive_axis: z
 
-      filter3:
+      filter2:
         name: slope
         type: gridMapFilters/MathExpressionFilter
         params:

@@ -6,3 +6,5 @@ build
 install
 log
 livox_bag/
+home_map.pgm
+home_map.yaml
