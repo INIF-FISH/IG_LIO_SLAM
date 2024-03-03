@@ -84,7 +84,7 @@ See inline description of parameters in the `SmacPlanner`. This includes comment
 planner_server:
   ros__parameters:
     planner_plugins: ["GridBased"]
-    use_sim_time: True
+    use_sim_time: False
 
     GridBased:
       plugin: "nav2_smac_planner/SmacPlanner"

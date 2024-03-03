@@ -1,19 +1,19 @@
 map_builder_node:
   ros__parameters:
-    use_sim_time: true
+    use_sim_time: False
     map_frame: map
     local_frame: local
     body_frame: odom
     imu_topic: /imu/data
     livox_topic: /livox/lidar
-    local_rate: 200.0
+    local_rate: 300.0
     loop_rate_lc: 0.5
     loop_rate_l: 0.25
     blind: 0.4
 
     lio_builder:
-      scan_resolution: 0.3
-      map_resolution: 0.3
+      scan_resolution: 0.5
+      map_resolution: 0.5
       point2plane_gain: 100.0
       gicp_constraint_gain: 100.0
       map_capacity: 5000000
@@ -29,8 +29,8 @@ map_builder_node:
       imu_ext_pos: [-0.011, -0.02329, 0.04412]
 
     lio_slam:
-      ext_r: [0., 0., 3.14]
-      ext_t: [0.0151, 0., 0.]
+      ext_r: [3.14, 0., 0.]
+      ext_t: [-0.0151, 0., 0.]
 
     loop_closure:
       activate: true
@@ -44,7 +44,7 @@ map_builder_node:
       loop_icp_thresh: 0.3
 
     localizer:
-      reloc_on_init: false
+      reloc_on_init: False
       pcd_path: "/home/nine-fish/7.pcd"
       xyz_rpy: [0.0, 0.0, 0.0, 3.14, 0.0, 3.14]
       refine_resolution: 0.15
@@ -58,7 +58,7 @@ map_builder_node:
 
 occupancy_grid_converter:
   ros__parameters:
-    use_sim_time: true
+    use_sim_time: False
     robot_frame: base_link
     grid_map_cloud_size: 10
     occupancyGriddataMin: 0.65

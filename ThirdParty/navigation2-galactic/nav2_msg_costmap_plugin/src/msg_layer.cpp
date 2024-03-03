@@ -133,45 +133,6 @@ namespace nav2_msg_costmap_plugin
                      layered_costmap_->getFootprint().size());
     }
 
-    // void MsgLayer::updateCosts(nav2_costmap_2d::Costmap2D &master_grid, int min_i, int min_j, int max_i, int max_j)
-    // {
-    //     unsigned char *master_array = master_grid.getCharMap();
-    //     unsigned int size_x = master_grid.getSizeInCellsX(), size_y = master_grid.getSizeInCellsY();
-    //     min_i = std::max(0, min_i);
-    //     min_j = std::max(0, min_j);
-    //     max_i = std::min(static_cast<int>(size_x), max_i);
-    //     max_j = std::min(static_cast<int>(size_y), max_j);
-    //     {
-    //         std::lock_guard<std::mutex> lck(map_lock_);
-    //         for (int j = min_j; j < max_j; j++)
-    //         {
-    //             for (int i = min_i; i < max_i; i++)
-    //             {
-    //                 double worldx, worldy;
-    //                 master_grid.mapToWorld(i, j, worldx, worldy);
-    //                 Eigen::Vector2d vec2d_map(worldx, worldy);
-    //                 Eigen::Array2i idx_map;
-    //                 int index = master_grid.getIndex(i, j);
-    //                 if (grid_map_->isInside(vec2d_map))
-    //                 {
-    //                     double origin_cost = master_array[index];
-    //                     double slope = grid_map_->atPosition("slope", vec2d_map);
-    //                     if (!std::isnan(slope))
-    //                     {
-    //                         double cost;
-    //                         if (slope > max_slope)
-    //                             cost = 254;
-    //                         else
-    //                             cost = 0;
-
-    //                         master_array[index] = cost;
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-
     void MsgLayer::updateCosts(nav2_costmap_2d::Costmap2D &master_grid, int min_i, int min_j, int max_i, int max_j)
     {
         unsigned char *master_array = master_grid.getCharMap();
@@ -180,37 +141,35 @@ namespace nav2_msg_costmap_plugin
         min_j = std::max(0, min_j);
         max_i = std::min(static_cast<int>(size_x), max_i);
         max_j = std::min(static_cast<int>(size_y), max_j);
+        {
+            std::lock_guard<std::mutex> lck(map_lock_);
+            for (int j = min_j; j < max_j; j++)
+            {
+                for (int i = min_i; i < max_i; i++)
+                {
+                    double worldx, worldy;
+                    master_grid.mapToWorld(i, j, worldx, worldy);
+                    Eigen::Vector2d vec2d_map(worldx, worldy);
+                    Eigen::Array2i idx_map;
+                    int index = master_grid.getIndex(i, j);
+                    if (grid_map_->isInside(vec2d_map))
+                    {
+                        double origin_cost = master_array[index];
+                        double slope = grid_map_->atPosition("slope", vec2d_map);
+                        if (!std::isnan(slope))
+                        {
+                            double cost;
+                            if (slope > max_slope)
+                                cost = 254;
+                            else
+                                cost = 0;
 
-        tbb::parallel_for(tbb::blocked_range<int>(min_j, max_j),
-                          [&](const tbb::blocked_range<int> &range_j)
-                          {
-                              for (int j = range_j.begin(); j < range_j.end(); ++j)
-                              {
-                                  for (int i = min_i; i < max_i; i++)
-                                  {
-                                      double worldx, worldy;
-                                      master_grid.mapToWorld(i, j, worldx, worldy);
-                                      Eigen::Vector2d vec2d_map(worldx, worldy);
-                                      Eigen::Array2i idx_map;
-                                      int index = master_grid.getIndex(i, j);
-                                      if (grid_map_->isInside(vec2d_map))
-                                      {
-                                          double origin_cost = master_array[index];
-                                          double slope = grid_map_->atPosition("slope", vec2d_map);
-                                          if (!std::isnan(slope))
-                                          {
-                                              double cost;
-                                              if (slope > max_slope)
-                                                  cost = 254;
-                                              else
-                                                  cost = 0;
-
-                                              master_array[index] = cost;
-                                          }
-                                      }
-                                  }
-                              }
-                          });
+                            master_array[index] = cost;
+                        }
+                    }
+                }
+            }
+        }
     }
 
 } // namespace nav2_msg_costmap_plugin

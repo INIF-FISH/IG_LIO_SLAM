@@ -37,14 +37,14 @@ namespace IG_LIO
     void OccupancyGridConverterNode::initSubscribers()
     {
         point_cloud_subscription_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-            "local_cloud", rclcpp::QoS(100).transient_local(), std::bind(&OccupancyGridConverterNode::pointCloudCallback, this, std::placeholders::_1));
+            "local_cloud", rclcpp::QoS(10).transient_local().keep_last(1), std::bind(&OccupancyGridConverterNode::pointCloudCallback, this, std::placeholders::_1));
     }
 
     void OccupancyGridConverterNode::initPublishers()
     {
         local_grid_map_pub_ = this->create_publisher<grid_map_msgs::msg::GridMap>(
-            "/local_costmap/grid_map", rclcpp::QoS(100).transient_local());
-        occupancy_grid_pub_map_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", rclcpp::QoS(100).reliable().transient_local());
+            "/local_costmap/grid_map", rclcpp::QoS(10).transient_local().keep_last(1));
+        occupancy_grid_pub_map_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", rclcpp::QoS(10).reliable().transient_local().keep_last(1));
     }
 
     void OccupancyGridConverterNode::initSerivces()

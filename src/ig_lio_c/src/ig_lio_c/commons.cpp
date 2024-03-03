@@ -5,7 +5,7 @@ namespace IG_LIO
     void ImuData::callback(const sensor_msgs::msg::Imu::SharedPtr msg)
     {
         std::lock_guard<std::mutex> lock(mutex);
-        double timestamp = msg->header.stamp.sec + msg->header.stamp.nanosec / 1e9;
+        double timestamp = double(msg->header.stamp.sec) + double(msg->header.stamp.nanosec) / 1e9;
         if (timestamp < last_timestamp)
         {
             std::cout << "imu loop back, clear buffer, last_timestamp: " << last_timestamp << "  current_timestamp: " << timestamp << std::endl;
@@ -24,7 +24,7 @@ namespace IG_LIO
     void LivoxData::callback(const livox_ros_driver2::msg::CustomMsg::SharedPtr msg)
     {
         std::lock_guard<std::mutex> lock(mutex);
-        double timestamp = msg->header.stamp.sec + msg->header.stamp.nanosec / 1e9;
+        double timestamp = double(msg->header.stamp.sec) + double(msg->header.stamp.nanosec) / 1e9;
         if (timestamp < last_timestamp)
         {
             std::cout << "livox loop back, clear buffer, last_timestamp: " << last_timestamp << "  current_timestamp: " << timestamp << std::endl;
@@ -55,9 +55,9 @@ namespace IG_LIO
                 p.x = msg->points[i].x;
                 p.y = msg->points[i].y;
                 p.z = msg->points[i].z;
-                p.intensity = msg->points[i].reflectivity;
-                p.curvature = msg->points[i].offset_time / float(1000000);
-                if ((p.x * p.x + p.y * p.y + p.z * p.z > (blind * blind)))
+                p.intensity = float(msg->points[i].reflectivity);
+                p.curvature = float(msg->points[i].offset_time) / float(1000000);
+                if ((p.x * p.x + p.y * p.y + p.z * p.z) > (blind * blind))
                 {
                     out->push_back(p);
                 }
@@ -77,12 +77,11 @@ namespace IG_LIO
     {
         if (imu_data.buffer.empty() || livox_data.buffer.empty())
             return false;
-
         if (!lidar_pushed)
         {
             lidar = livox_data.buffer.front();
             lidar_time_begin = livox_data.time_buffer.front();
-            lidar_time_end = lidar_time_begin + lidar->points.back().curvature / double(1000);
+            lidar_time_end =  double(lidar_time_begin) + double(lidar->points.back().curvature) / double(1000);
             lidar_pushed = true;
         }
 

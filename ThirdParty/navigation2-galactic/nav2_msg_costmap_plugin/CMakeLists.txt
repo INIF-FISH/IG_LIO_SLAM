@@ -29,7 +29,6 @@ find_package(grid_map_core REQUIRED)
 find_package(grid_map_ros REQUIRED)
 find_package(grid_map_msgs REQUIRED)
 find_package(tf2_eigen REQUIRED)
-find_package(TBB REQUIRED)
 set(dep_pkgs
     rclcpp
     nav2_costmap_2d
@@ -39,15 +38,12 @@ set(dep_pkgs
     tf2
     tf2_ros
     tf2_eigen
-    pluginlib
-    TBB)
+    pluginlib)
 
 # === Build ===
-
 add_library(${lib_name} SHARED
             src/msg_layer.cpp)
 include_directories(include)
-
 # === Installation ===
 
 install(TARGETS ${lib_name}

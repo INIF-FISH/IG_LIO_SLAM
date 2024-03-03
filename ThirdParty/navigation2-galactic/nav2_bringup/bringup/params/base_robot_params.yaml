@@ -1,6 +1,6 @@
 bt_navigator:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
     global_frame: map
     robot_base_frame: base_link
     odom_topic: /odom
@@ -49,11 +49,11 @@ bt_navigator:
 
 bt_navigator_rclcpp_node:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
 
 controller_server:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
     controller_frequency: 10.0
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.1
@@ -174,7 +174,7 @@ controller_server:
       
 controller_server_rclcpp_node:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
 
 local_costmap:
   local_costmap:
@@ -183,7 +183,7 @@ local_costmap:
       publish_frequency: 10.0
       global_frame: map
       robot_base_frame: base_link
-      use_sim_time: True
+      use_sim_time: False
       always_send_full_costmap: True
       rolling_window: true
       width: 5
@@ -192,7 +192,7 @@ local_costmap:
       robot_radius: 0.32
       plugins: ["msg_layer", "inflation_layer"]
       msg_layer:
-        plugin: "nav2_msg_costmap_plugin::MsgLayer"
+        plugin: "nav2_msg_costmap_plugin/MsgLayer"
         map_topic: "/local_costmap/grid_map"
         global_frame: map
         max_slope: 0.5
@@ -202,10 +202,10 @@ local_costmap:
         inflation_radius: 0.15
   local_costmap_client:
     ros__parameters:
-      use_sim_time: True
+      use_sim_time: False
   local_costmap_rclcpp_node:
     ros__parameters:
-      use_sim_time: True
+      use_sim_time: False
 
 global_costmap:
   global_costmap:
@@ -214,7 +214,7 @@ global_costmap:
       publish_frequency: 5.0
       global_frame: map
       robot_base_frame: base_link
-      use_sim_time: True
+      use_sim_time: False
       robot_radius: 0.32
       resolution: 0.05
       track_unknown_space: true
@@ -223,7 +223,7 @@ global_costmap:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
       msg_layer:
-        plugin: "nav2_msg_costmap_plugin::MsgLayer"
+        plugin: "nav2_msg_costmap_plugin/MsgLayer"
         map_topic: "/local_costmap/grid_map"
         global_frame: map
         max_slope: 0.5
@@ -234,19 +234,19 @@ global_costmap:
       always_send_full_costmap: True
   global_costmap_client:
     ros__parameters:
-      use_sim_time: True
+      use_sim_time: False
   global_costmap_rclcpp_node:
     ros__parameters:
-      use_sim_time: True
+      use_sim_time: False
 
 map_server:
   ros__parameters:
-    use_sim_time: True
-    yaml_filename: "/home/nine-fish/projects/IG_LIO_SLAM/ThirdParty/navigation2-galactic/nav2_bringup/bringup/maps/home_map.yaml"
+    use_sim_time: False
+    yaml_filename: "/home/tup/TUP2024-Sentry-Framework/src/IG_LIO_SLAM/ThirdParty/navigation2-galactic/nav2_bringup/bringup/maps/home_map.yaml"
 
 map_saver:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
     save_map_timeout: 5.0
     free_thresh_default: 0.25
     occupied_thresh_default: 0.65
@@ -255,17 +255,17 @@ map_saver:
 planner_server:
   ros__parameters:
     expected_planner_frequency: 10.0
-    use_sim_time: True
+    use_sim_time: False
     planner_plugins: ["GridBased"]
     GridBased:
       plugin: "nav2_navfn_planner/NavfnPlanner"
       tolerance: 0.5
-      use_astar: false
+      use_astar: False
       allow_unknown: true
 
 planner_server_rclcpp_node:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
 
 recoveries_server:
   ros__parameters:
@@ -282,7 +282,7 @@ recoveries_server:
     global_frame: odom
     robot_base_frame: base_link
     transform_timeout: 0.1
-    use_sim_time: true
+    use_sim_time: False
     simulate_ahead_time: 2.0
     max_rotational_vel: 1.0
     min_rotational_vel: 0.4
@@ -291,12 +291,12 @@ recoveries_server:
 
 robot_state_publisher:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
 
 waypoint_follower:
   ros__parameters:
     loop_rate: 20
-    stop_on_failure: false
+    stop_on_failure: False
     waypoint_task_executor_plugin: "wait_at_waypoint"   
     wait_at_waypoint:
       plugin: "nav2_waypoint_follower::WaitAtWaypoint"

@@ -148,19 +148,19 @@ namespace IG_LIO
 
     void MapBuilderNode::initSubscribers()
     {
-        imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(imu_data_.topic, rclcpp::QoS(1000).reliable(), std::bind(&ImuData::callback, &imu_data_, _1));
-        livox_sub_ = this->create_subscription<livox_ros_driver2::msg::CustomMsg>(livox_data_.topic, rclcpp::QoS(1000).reliable(), std::bind(&LivoxData::callback, &livox_data_, _1));
+        imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(imu_data_.topic, rclcpp::QoS(400).reliable().keep_last(1), std::bind(&ImuData::callback, &imu_data_, _1));
+        livox_sub_ = this->create_subscription<livox_ros_driver2::msg::CustomMsg>(livox_data_.topic, rclcpp::QoS(20).reliable().keep_last(1), std::bind(&LivoxData::callback, &livox_data_, _1));
     }
 
     void MapBuilderNode::initPublishers()
     {
-        local_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("local_cloud", rclcpp::QoS(100).transient_local());
-        body_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud", rclcpp::QoS(100).transient_local());
-        map_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("map_cloud", rclcpp::QoS(100).transient_local());
-        odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("slam_odom", rclcpp::QoS(100).transient_local());
-        loop_mark_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("loop_mark", rclcpp::QoS(100).transient_local());
-        local_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("local_path", rclcpp::QoS(100).transient_local());
-        global_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("global_path", rclcpp::QoS(100).transient_local());
+        local_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("local_cloud", rclcpp::QoS(10).transient_local().keep_last(1));
+        body_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud", rclcpp::QoS(10).transient_local().keep_last(1));
+        map_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("map_cloud", rclcpp::QoS(10).transient_local().keep_last(1));
+        odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("slam_odom", rclcpp::QoS(10).transient_local().keep_last(1));
+        loop_mark_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("loop_mark", rclcpp::QoS(10).transient_local().keep_last(1));
+        local_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("local_path", rclcpp::QoS(10).transient_local().keep_last(1));
+        global_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("global_path", rclcpp::QoS(10).transient_local().keep_last(1));
     }
 
     void MapBuilderNode::initSerivces()

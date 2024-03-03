@@ -58,8 +58,6 @@
 // GRID_MAP
 #include <grid_map_ros/grid_map_ros.hpp>
 
-#include <tbb/tbb.h>
-
 namespace nav2_msg_costmap_plugin
 {
 

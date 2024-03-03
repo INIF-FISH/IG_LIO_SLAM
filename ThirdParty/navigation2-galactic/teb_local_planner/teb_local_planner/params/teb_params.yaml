@@ -1,7 +1,7 @@
 controller_server:
   ros__parameters:
     odom_topic: /odom
-    use_sim_time: True
+    use_sim_time: False
     controller_frequency: 5.0
     controller_plugin_types: ["teb_local_planner::TebLocalPlannerROS"]
     controller_plugins: ["FollowPath"]

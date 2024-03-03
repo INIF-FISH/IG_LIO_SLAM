@@ -3,8 +3,8 @@
 <package format="3">
   <name>nav2_msg_costmap_plugin</name>
   <version>1.0.0</version>
-  <description>Run-time plugin transform ROS map Msgs into costmap</description>
-  <maintainer email="guhao0521@gmail.com">Hao Gu</maintainer>
+  <description>Run-time plugin transform GridMap Msgs into costmap with TBB</description>
+  <maintainer email="iratecat1@outlook.com">INIF FISH</maintainer>
   <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

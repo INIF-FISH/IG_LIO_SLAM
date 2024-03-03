@@ -36,7 +36,6 @@ namespace IG_LIO
     {
         if (meas.imus.empty())
             return;
-
         for (const auto &imu : meas.imus)
         {
             init_count_++;
@@ -91,7 +90,7 @@ namespace IG_LIO
         out = meas.lidar;
 
         std::sort(out->points.begin(), out->points.end(), [](PointType &p1, PointType &p2) -> bool
-                  { return p1.curvature < p2.curvature; });
+                  { return p1.curvature - p2.curvature < 0.; });
 
         IG_LIO::State state = kf_->x();
         imu_poses_.clear();
@@ -106,7 +105,7 @@ namespace IG_LIO
         {
             IMU &head = *it_imu;
             IMU &tail = *(it_imu + 1);
-            if (tail.timestamp < last_lidar_time_end_)
+            if (tail.timestamp - last_lidar_time_end_ < 0.)
                 continue;
             gyro_val = 0.5 * (head.gyro + tail.gyro);
             acc_val = 0.5 * (head.acc + head.acc);
