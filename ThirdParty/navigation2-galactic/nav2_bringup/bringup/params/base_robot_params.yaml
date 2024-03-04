@@ -199,7 +199,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 2.0
-        inflation_radius: 0.15
+        inflation_radius: 0.1
   local_costmap_client:
     ros__parameters:
       use_sim_time: False

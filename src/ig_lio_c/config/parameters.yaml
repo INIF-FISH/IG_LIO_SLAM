@@ -12,8 +12,8 @@ map_builder_node:
     blind: 0.4
 
     lio_builder:
-      scan_resolution: 0.5
-      map_resolution: 0.5
+      scan_resolution: 0.3
+      map_resolution: 0.3
       point2plane_gain: 100.0
       gicp_constraint_gain: 100.0
       map_capacity: 5000000
