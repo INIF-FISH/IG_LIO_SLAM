@@ -31,6 +31,7 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time')
     autostart = LaunchConfiguration('autostart')
     params_file = LaunchConfiguration('params_file')
+    map_yaml_file = LaunchConfiguration('map')
 
     lifecycle_nodes = ["map_server",
                        'controller_server',
@@ -50,7 +51,8 @@ def generate_launch_description():
     # Create our own temporary YAML files that include substitutions
     param_substitutions = {
         'use_sim_time': use_sim_time,
-        'autostart': autostart}
+        'autostart': autostart,
+        'yaml_filename': map_yaml_file}
 
     configured_params = RewrittenYaml(
             source_file=params_file,
@@ -61,6 +63,12 @@ def generate_launch_description():
     return LaunchDescription([
         # Set env var to print messages to stdout immediately
         SetEnvironmentVariable('RCUTILS_LOGGING_BUFFERED_STREAM', '1'),
+
+        DeclareLaunchArgument(
+        'map',
+        default_value=os.path.join(
+            bringup_dir, 'maps', 'home_map.yaml'),
+        description='Full path to map file to load'),
 
         DeclareLaunchArgument(
             'namespace', default_value='',
