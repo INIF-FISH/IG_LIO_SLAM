@@ -60,7 +60,7 @@ namespace IG_LIO
 
     private:
         int init_count_ = 0;
-        int max_init_count_ = 20;
+        int max_init_count_ = 30;
         Eigen::Matrix3d rot_ext_;
         Eigen::Vector3d pos_ext_;
         std::shared_ptr<IG_LIO::IESKF> kf_;
