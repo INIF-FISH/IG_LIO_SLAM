@@ -55,7 +55,7 @@ namespace IG_LIO
             Eigen::Matrix3d rotation_row_pitch = (Eigen::Quaterniond::FromTwoVectors((-mean_acc_).normalized(), Eigen::Vector3d(0.0, 0.0, -1.0)).matrix());
             Eigen::Vector3d rpy = rotation_row_pitch.eulerAngles(0, 1, 2);
             double yaw_angle = rpy[2];
-            if (fabs(yaw_angle) > M_PI / 2.0)
+            if (yaw_angle > 0.)
             {
                 rpy[2] = 0.0;
             }
