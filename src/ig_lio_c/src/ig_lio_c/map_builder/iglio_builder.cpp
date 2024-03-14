@@ -37,6 +37,8 @@ namespace IG_LIO
         pos_ext << params.imu_ext_pos[0], params.imu_ext_pos[1], params.imu_ext_pos[2];
         imu_processor_->setExtParams(rot_ext, pos_ext);
         imu_processor_->setAlignGravity(params.align_gravity);
+        imu_processor_->setSetInitpose(params.set_initpose);
+        imu_processor_->setInitpose(params.ext_r);
 
         fast_voxel_map_ = std::make_shared<FastVoxelMap>(params.scan_resolution);
         voxel_map_ = std::make_shared<VoxelMap>(params.map_resolution, params.map_capacity, params.grid_capacity, params.mode);

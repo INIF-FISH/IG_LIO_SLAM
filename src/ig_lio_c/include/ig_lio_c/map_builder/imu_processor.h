@@ -56,6 +56,10 @@ namespace IG_LIO
 
         void setAlignGravity(bool align_gravity) { align_gravity_ = align_gravity; }
 
+        void setSetInitpose(bool set_initpose) { set_initpose_ = set_initpose; }
+
+        void setInitpose(std::vector<double> ext_r);
+
         void reset();
 
     private:
@@ -63,11 +67,13 @@ namespace IG_LIO
         int max_init_count_ = 30;
         Eigen::Matrix3d rot_ext_;
         Eigen::Vector3d pos_ext_;
+        std::vector<double> ext_r_;
         std::shared_ptr<IG_LIO::IESKF> kf_;
 
         IMU last_imu_;
         bool init_flag_ = false;
         bool align_gravity_ = true;
+        bool set_initpose_ = true;
 
         Eigen::Vector3d mean_acc_;
         Eigen::Vector3d mean_gyro_;

@@ -58,6 +58,7 @@ namespace IG_LIO
         lio_params_.map_capacity = static_cast<size_t>(map_capacity);
         lio_params_.grid_capacity = static_cast<size_t>(grid_capacity);
         this->declare_parameter<bool>("lio_builder.align_gravity", true);
+        this->declare_parameter<bool>("lio_builder.set_initpose", true);
         this->declare_parameter<bool>("lio_builder.extrinsic_est_en", false);
         std::vector<double> pre_rot = {1, 0, 0, 0, 1, 0, 0, 0, 1};
         std::vector<double> pre_pos = {-0.011, -0.02329, 0.04412};
@@ -72,6 +73,7 @@ namespace IG_LIO
         this->get_parameter("lio_builder.ba_cov", lio_params_.imu_acc_bias_cov);
         this->get_parameter("lio_builder.bg_cov", lio_params_.imu_gyro_bias_cov);
         this->get_parameter("lio_builder.align_gravity", lio_params_.align_gravity);
+        this->get_parameter("lio_builder.set_initpose", lio_params_.set_initpose);
         this->get_parameter("lio_builder.extrinsic_est_en", lio_params_.extrinsic_est_en);
         this->get_parameter("lio_builder.imu_ext_rot", lio_params_.imu_ext_rot);
         this->get_parameter("lio_builder.imu_ext_pos", lio_params_.imu_ext_pos);

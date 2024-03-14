@@ -19,7 +19,8 @@ map_builder_node:
       map_capacity: 5000000
       grid_capacity: 20
       extrinsic_est_en: true
-      align_gravity: true
+      align_gravity: false
+      set_initpose: true
       near_mode: 1
       acc_cov: 0.1
       gyr_cov: 0.1

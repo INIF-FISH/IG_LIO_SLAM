@@ -16,6 +16,11 @@ namespace IG_LIO
         pos_ext_ = pos_ext;
     }
 
+    void IMUProcessor::setInitpose(std::vector<double> ext_r)
+    {
+        ext_r_ = ext_r;
+    }
+
     void IMUProcessor::setCov(Eigen::Vector3d gyro_cov, Eigen::Vector3d acc_cov, Eigen::Vector3d gyro_bias_cov, Eigen::Vector3d acc_bias_cov)
     {
         gyro_cov_ = gyro_cov;
@@ -50,7 +55,7 @@ namespace IG_LIO
         state.rot_ext = rot_ext_;
         state.pos_ext = pos_ext_;
         state.bg = mean_gyro_;
-        if (align_gravity_)
+        if (align_gravity_ && !set_initpose_)
         {
             Eigen::Matrix3d rotation_row_pitch = (Eigen::Quaterniond::FromTwoVectors((-mean_acc_).normalized(), Eigen::Vector3d(0.0, 0.0, -1.0)).matrix());
             Eigen::Vector3d rpy = rotation_row_pitch.eulerAngles(0, 1, 2);
@@ -66,6 +71,15 @@ namespace IG_LIO
             Eigen::Matrix3d modifiedRotationMatrix;
             modifiedRotationMatrix = Eigen::AngleAxisd(rpy[0], Eigen::Vector3d::UnitX()) * Eigen::AngleAxisd(rpy[1], Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(rpy[2], Eigen::Vector3d::UnitZ());
             state.rot = modifiedRotationMatrix;
+            state.initG(Eigen::Vector3d(0, 0, -1.0));
+        }
+        else if(set_initpose_)
+        {
+            Eigen::Vector3d rpy;
+            rpy << ext_r_[0] , ext_r_[1], ext_r_[2];
+            Eigen::Matrix3d modifiedRotationMatrix;
+            modifiedRotationMatrix = Eigen::AngleAxisd(rpy[0], Eigen::Vector3d::UnitX()) * Eigen::AngleAxisd(rpy[1], Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(rpy[2], Eigen::Vector3d::UnitZ());
+            state.rot = modifiedRotationMatrix.inverse();
             state.initG(Eigen::Vector3d(0, 0, -1.0));
         }
         else

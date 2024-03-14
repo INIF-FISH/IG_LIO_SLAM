@@ -53,6 +53,7 @@ namespace IG_LIO
 
         bool extrinsic_est_en = false;
         bool align_gravity = true;
+        bool set_initpose = true;
     };
     class IGLIOBuilder
     {
