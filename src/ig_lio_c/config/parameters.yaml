@@ -34,7 +34,7 @@ map_builder_node:
       ext_t: [-0.0151, 0., 0.]
 
     loop_closure:
-      activate: true
+      activate: True
       rad_thresh: 0.2
       dist_thresh: 1.0
       time_thresh: 30.0
