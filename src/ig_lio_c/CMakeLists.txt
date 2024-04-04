@@ -32,7 +32,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}   ${OpenMP_C_FLAGS}")
 endif()
-
 find_package(ament_cmake REQUIRED COMPONENTS)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
@@ -59,6 +58,7 @@ find_package(nav2_util REQUIRED)
 find_package(TBB REQUIRED)
 find_package(nav2_map_server REQUIRED)
 find_package(GRAPHICSMAGICKCPP REQUIRED)
+find_package(Glog REQUIRED)
 
 set(dependencies
   rclcpp
@@ -84,6 +84,8 @@ set(dependencies
   nav2_map_server
   GRAPHICSMAGICKCPP
 )
+
+set(LINK_DIR ${PROJECT_SOURCE_DIR}/../../ThirdParty/octomap-Dynamic_point_cloud_removal/lib)
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/include
@@ -117,6 +119,7 @@ ament_target_dependencies(map_builder_node
 target_link_libraries(map_builder_node
   ${Eigen3_LIBRARIES}
   ${PCL_LIBRARIES}
+  ${LINK_DIR}/libdm_lib.so
   gtsam
   TBB::tbb
 )
@@ -138,7 +141,6 @@ target_link_libraries(occupancy_grid_converter
 install(TARGETS
   map_builder_node
   occupancy_grid_converter
-
   DESTINATION lib/${PROJECT_NAME}
 )
 

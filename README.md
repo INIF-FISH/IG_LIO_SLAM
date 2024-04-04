@@ -21,7 +21,7 @@ ros2 launch nav2_bringup base_robot_launch.py
 保存pcd地图
 
 ```
-ros2 service call /SaveMap ig_lio_c_msgs/srv/SaveMap "{save_path: '/home/XXX/XXX.pcd', resolution: 0.0}"
+ros2 service call /SaveMap ig_lio_c_msgs/srv/SaveMap "{save_path: '/home/XXX', resolution: 0.0}"
 ```
 
 使用保存的pcd地图转换占据地图

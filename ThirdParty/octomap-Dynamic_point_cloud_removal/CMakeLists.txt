@@ -39,6 +39,7 @@ include_directories(octomap_mapping/include)
 add_library(dm_lib SHARED octomap_mapping/src/octomapper.cpp)
 add_dependencies(dm_lib octomap)
 target_link_libraries(dm_lib ${LOG_LIB} yaml-cpp ${FUN_LIB})
+set (LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 ############
 # BINARIES #

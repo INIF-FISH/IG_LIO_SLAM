@@ -19,6 +19,7 @@
   <buildtool_depend>nav2_map_server</buildtool_depend>
   <buildtool_depend>grid_map_pcl</buildtool_depend>
   <buildtool_depend>grid_map_ros</buildtool_depend>
+  <buildtool_depend>octomap-Dynamic_point_cloud_removal</buildtool_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

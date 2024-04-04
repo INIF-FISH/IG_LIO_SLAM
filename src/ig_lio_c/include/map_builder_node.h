@@ -31,12 +31,14 @@
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 #include <ig_lio_c_msgs/srv/save_map.hpp>
 #include <ig_lio_c_msgs/srv/re_loc.hpp>
 
 #include "./ig_lio_c/map_builder/iglio_builder.h"
 #include "./ig_lio_c/localizer/icp_localizer.h"
+#include "../../../ThirdParty/octomap-Dynamic_point_cloud_removal/octomap_mapping/include/octomapper.h"
 
 namespace IG_LIO
 {
@@ -546,6 +548,7 @@ namespace IG_LIO
         std::string global_frame_;
         std::string local_frame_;
         std::string body_frame_;
+        std::string dynamic_point_cloud_removal_config_;
         double current_time_;
         bool publish_map_cloud_;
         bool localizer_reloc_on_init;
@@ -570,7 +573,6 @@ namespace IG_LIO
         std::shared_ptr<std::thread> localizer_thread_;
         std::shared_ptr<tf2_ros::TransformBroadcaster> br_;
         std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_br_;
-        pcl::PCDWriter writer_;
 
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr local_cloud_pub_;

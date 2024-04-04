@@ -23,11 +23,13 @@ namespace IG_LIO
         this->declare_parameter<std::string>("body_frame", "body");
         this->declare_parameter<std::string>("imu_topic", "/imu/data");
         this->declare_parameter<std::string>("livox_topic", "/livox/lidar");
+        this->declare_parameter<std::string>("dynamic_point_cloud_removal_config", "config_fg.yaml");
         this->get_parameter("map_frame", global_frame_);
         this->get_parameter("local_frame", local_frame_);
         this->get_parameter("body_frame", body_frame_);
         this->get_parameter("imu_topic", imu_data_.topic);
         this->get_parameter("livox_topic", livox_data_.topic);
+        this->get_parameter("dynamic_point_cloud_removal_config", dynamic_point_cloud_removal_config_);
         this->declare_parameter("publish_map_cloud", false);
         this->get_parameter("publish_map_cloud", publish_map_cloud_);
         double local_rate, loop_rate_lc, loop_rate_l;
@@ -522,36 +524,61 @@ namespace IG_LIO
                                          const ig_lio_c_msgs::srv::SaveMap::Response::SharedPtr response)
     {
         std::string file_path = request->save_path;
+        int cnt = 1;
+        octomap::MapUpdater map_updater(ament_index_cpp::get_package_share_directory("ig_lio_c") + "/config/" + dynamic_point_cloud_removal_config_);
         IG_LIO::PointCloudXYZI::Ptr cloud(new IG_LIO::PointCloudXYZI);
         for (Pose6D &p : shared_data_->key_poses)
         {
+            map_updater.timing.start(" One Scan Cost  ");
             IG_LIO::PointCloudXYZI::Ptr temp_cloud(new IG_LIO::PointCloudXYZI);
             pcl::transformPointCloud(*shared_data_->cloud_history[p.index],
                                      *temp_cloud,
                                      p.global_pos,
                                      Eigen::Quaterniond(p.global_rot));
-            *cloud += *temp_cloud;
+            if (cnt > 1 && !map_updater.getCfg().verbose_)
+            {
+                std::ostringstream log_msg;
+                log_msg << "( Processing:" << cnt << ")"
+                        << " Time Cost: "
+                        << map_updater.timing.lastSeconds(" One Scan Cost  ") << "s";
+                std::string spaces(10, ' ');
+                log_msg << spaces;
+                RCLCPP_INFO(this->get_logger(), log_msg.str());
+            }
+            pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz(new pcl::PointCloud<pcl::PointXYZ>());
+            pcl::copyPointCloud(*temp_cloud, *cloud_xyz);
+            map_updater.run(cloud_xyz);
+            map_updater.timing.stop(" One Scan Cost  ");
+            cnt++;
         }
-        if (cloud->empty())
+        map_updater.timing.start("4. Query & Write");
+        std::string output_file;
+        if (map_updater.getCfg().filterGroundPlane && map_updater.getCfg().filterNoise)
+            output_file = "octomapfg";
+        else if (map_updater.getCfg().filterGroundPlane)
+            output_file = "octomapg";
+        else
+            output_file = "octomap";
+
+        map_updater.saveRawMap(request->save_path, output_file);
+        map_updater.timing.stop("4. Query & Write");
+        map_updater.timing.setColor("0. Fit ground   ", ufo::Timing::boldYellowColor());
+        map_updater.timing.setColor("1. Ray SetFreeOc", ufo::Timing::boldCyanColor());
+        map_updater.timing.setColor("2. Update Octree", ufo::Timing::boldMagentaColor());
+        map_updater.timing.setColor("3. Prune Tree   ", ufo::Timing::boldGreenColor());
+        map_updater.timing.setColor("4. Query & Write", ufo::Timing::boldRedColor());
+        RCLCPP_INFO(this->get_logger(), "\nOctomap Timings:\n");
+        RCLCPP_INFO(this->get_logger(), "\t Component\t\tTotal\tLast\tMean\tStDev\t Min\t Max\t Steps\n");
+        for (auto const &tag : map_updater.timing.tags())
         {
-            response->status = false;
-            response->message = "Empty cloud!";
-            RCLCPP_WARN(this->get_logger(), "Failed to save map !");
+            RCLCPP_INFO(this->get_logger(), "\t%s%s\t%5.2f\t%5.4f\t%5.4f\t%5.4f\t%5.4f\t%5.4f\t%6lu%s\n",
+                        map_updater.timing.color(tag).c_str(), tag.c_str(), map_updater.timing.totalSeconds(tag),
+                        map_updater.timing.lastSeconds(tag), map_updater.timing.meanSeconds(tag), map_updater.timing.stdSeconds(tag),
+                        map_updater.timing.minSeconds(tag), map_updater.timing.maxSeconds(tag), map_updater.timing.numSamples(tag),
+                        ufo::Timing::resetColor());
         }
-        pcl::PointCloud<pcl::PointXYZINormal>::Ptr cloud_SOR_filtered(new pcl::PointCloud<pcl::PointXYZINormal>);
-        pcl::StatisticalOutlierRemoval<pcl::PointXYZINormal> sor;
-        sor.setInputCloud(cloud);
-        sor.setMeanK(50);
-        sor.setStddevMulThresh(1.0);
-        sor.filter(*cloud_SOR_filtered);
-        pcl::PointCloud<pcl::PointXYZINormal>::Ptr cloud_VG_filtered(new pcl::PointCloud<pcl::PointXYZINormal>);
-        pcl::VoxelGrid<pcl::PointXYZINormal> vg;
-        vg.setInputCloud(cloud_SOR_filtered);
-        vg.setLeafSize(0.02f, 0.02f, 0.02f);
-        vg.filter(*cloud_VG_filtered);
-        response->status = true;
-        response->message = "Save map success!";
-        writer_.writeBinaryCompressed(file_path, *cloud_VG_filtered);
+        response->status = 1;
+        response->message = "Success to save map !";
         RCLCPP_INFO(this->get_logger(), "Success to save map !");
     }
 

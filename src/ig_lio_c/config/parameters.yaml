@@ -6,6 +6,7 @@ map_builder_node:
     body_frame: odom
     imu_topic: /imu/data
     livox_topic: /livox/lidar
+    dynamic_point_cloud_removal_config: config_fg.yaml
     local_rate: 300.0
     loop_rate_lc: 0.5
     loop_rate_l: 0.25
