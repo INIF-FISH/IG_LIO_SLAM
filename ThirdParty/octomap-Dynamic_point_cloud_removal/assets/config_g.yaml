@@ -1,0 +1,25 @@
+# main param, -1 means no range limit
+resolution: 0.1
+maxRange: -1.0
+minRange: -1.0
+
+probHit: 0.7
+probMiss: 0.4
+thresMin: 0.12
+thresMax: 0.97
+
+# whether prune tree
+prune_tree: true
+
+# ===> Ground Segmentation, so that we will not count ground
+filterGroundPlane: true
+m_groundFilterDistance: 0.04
+m_groundFilterAngle: 0.15
+m_groundFilterPlaneDistance: 0.15
+
+# ===> Filter
+filterNoise: false
+filterMeanK: 50
+StddevMulThresh: 1.0
+
+verbose: false

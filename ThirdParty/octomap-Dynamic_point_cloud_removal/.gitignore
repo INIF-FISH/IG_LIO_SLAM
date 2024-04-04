@@ -1,0 +1,31 @@
+# temp. editor backups:
+*~
+
+# generated content / project files:
+.project
+.cproject
+doc
+html
+.qglviewer.xml
+
+# build output:
+lib
+bin
+build
+callgrind.out*
+
+# in case someone runs an in-source build:
+CMakeCache.txt
+cmake_install.cmake
+CPackConfig.cmake
+CMakeFiles
+CPackSourceConfig.cmake
+install_manifest.txt
+Makefile
+
+# our binary files, in case someone forgets them in the source dir:
+*.bt
+*.ot
+*.graph
+
+.vscode/*
