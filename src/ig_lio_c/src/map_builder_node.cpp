@@ -543,7 +543,7 @@ namespace IG_LIO
                         << map_updater.timing.lastSeconds(" One Scan Cost  ") << "s";
                 std::string spaces(10, ' ');
                 log_msg << spaces;
-                RCLCPP_INFO(this->get_logger(), log_msg.str());
+                RCLCPP_INFO(this->get_logger(), log_msg.str().c_str());
             }
             pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz(new pcl::PointCloud<pcl::PointXYZ>());
             pcl::copyPointCloud(*temp_cloud, *cloud_xyz);

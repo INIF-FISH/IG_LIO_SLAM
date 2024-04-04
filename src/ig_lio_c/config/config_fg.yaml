@@ -1,5 +1,5 @@
 # main param, -1 means no range limit
-resolution: 0.1
+resolution: 0.05
 maxRange: -1.0
 minRange: -1.0
 

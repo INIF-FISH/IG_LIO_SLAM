@@ -317,4 +317,25 @@ namespace octomap {
         }
         pcl::io::savePCDFileBinary(folder_path + "/" + file_name + "_output.pcd", *octomap_map_);
     }
+//TODO:
+    //  pcl::PointCloud<PointType>::Ptr MapUpdater::getRawMap(std::string const& folder_path, std::string const& file_name) {
+    //     pcl::PointCloud<PointType>::Ptr octomap_map_(new pcl::PointCloud<PointType>);
+    //     for(auto &pt: raw_map_ptr_->points) {
+    //         octomap::point3d point(pt.x, pt.y, pt.z);
+    //         octomap::OcTreeNode* node = m_octree->search(point);
+    //         if (node == nullptr){
+    //             LOG_IF(WARNING, cfg_.verbose_) << "Cannot find the Key in octomap at: " << point;
+    //             continue;
+    //         }
+    //         if (m_octree->isNodeOccupied(node)){
+    //             octomap_map_->push_back(pt);
+    //         }
+    //     }
+    //     *octomap_map_ += *ground_pts;
+    //     if (octomap_map_->size() == 0) {
+    //         LOG(WARNING) << "\noctomap_map_ is empty, no map is return";
+    //         return;
+    //     }
+    //    return octomap_map_;
+    //  }
 }  // namespace octomap
