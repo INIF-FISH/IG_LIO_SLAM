@@ -559,8 +559,25 @@ namespace IG_LIO
             output_file = "octomapg";
         else
             output_file = "octomap";
-
-        map_updater.saveRawMap(request->save_path, output_file);
+        auto static_cloud = map_updater.getRawMap();
+         if (static_cloud->empty())
+        {
+            response->status = false;
+            response->message = "Empty cloud!";
+            RCLCPP_WARN(this->get_logger(), "Failed to save map !");
+        }
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_SOR_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
+        sor.setInputCloud(static_cloud);
+        sor.setMeanK(50);
+        sor.setStddevMulThresh(1.0);
+        sor.filter(*cloud_SOR_filtered);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_VG_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::VoxelGrid<pcl::PointXYZ> vg;
+        vg.setInputCloud(cloud_SOR_filtered);
+        vg.setLeafSize(0.02f, 0.02f, 0.02f);
+        vg.filter(*cloud_VG_filtered);
+        pcl::io::savePCDFileBinary(request->save_path + "/" + output_file + "_output.pcd", *cloud_VG_filtered);
         map_updater.timing.stop("4. Query & Write");
         map_updater.timing.setColor("0. Fit ground   ", ufo::Timing::boldYellowColor());
         map_updater.timing.setColor("1. Ray SetFreeOc", ufo::Timing::boldCyanColor());

@@ -25,6 +25,7 @@ public:
   void run(pcl::PointCloud<PointType>::Ptr const& single_pc);
   void saveMap(std::string const& folder_path, std::string const& file_name);
   void saveRawMap(std::string const& folder_path, std::string const& file_name);
+  pcl::PointCloud<PointType>::Ptr getRawMap();
   const common::Config getCfg() { return cfg_; }
   ufo::Timing timing;
 
