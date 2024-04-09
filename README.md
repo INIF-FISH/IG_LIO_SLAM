@@ -1,6 +1,8 @@
 ### ROS2版本iG-LIO
 
-STILL WORKING ON ......
+本项目用于iG-LIO算法于ROS2框架下的导航部署，为添加2.5D地形导航能力，使用grid_map进行障碍检测
+
+集成DWA/DWB、TEB两种局部规划器，目前适用于Livox Mid-360激光雷达，兼容任意安装方案
 
 | 工作基于                                             |
 | ---------------------------------------------------- |
@@ -25,6 +27,7 @@ STILL WORKING ON ......
 | Glog / gflag      | 任意     | latest                                         |
 | Livox-SDK2        | 编译安装 | https://github.com/Livox-SDK/Livox-SDK2        |
 | livox_ros_driver2 | 编译安装 | https://github.com/Livox-SDK/livox_ros_driver2 |
+| TBB               | apt安装  | 2020.1-2                                       |
 
 #### 配置文件
 
