@@ -77,8 +77,10 @@ controller_server:
       # Robot
               
       max_vel_x: 0.26
+      max_vel_y: 0.26
       max_vel_theta: 1.0 
       acc_lim_x: 2.5
+      acc_lim_y: 2.5
       acc_lim_theta: 3.2
 
       footprint_model: # types: "point", "circular", "two_circles", "line", "polygon"
@@ -113,8 +115,10 @@ controller_server:
       penalty_epsilon: 0.1
       obstacle_cost_exponent: 4.0
       weight_max_vel_x: 0.5
+      weight_max_vel_y: 0.5
       weight_max_vel_theta: 0.5
       weight_acc_lim_x: 0.5
+      weight_acc_lim_y: 0.5
       weight_acc_lim_theta: 10.5
       weight_kinematics_nh: 1000.0
       weight_kinematics_forward_drive: 3.0
