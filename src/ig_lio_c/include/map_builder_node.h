@@ -120,6 +120,10 @@ namespace IG_LIO
         bool activate = false;
     };
 
+    /**
+     * @brief 回环检测
+     * 用于处理回环检测，异步于主线程，通过shared_data共享数据
+     */
     class LoopClosureThread
     {
     public:
@@ -402,6 +406,10 @@ namespace IG_LIO
         }
     };
 
+    /**
+     * @brief 重定位
+     * 在线重定位，异步于主线程，通过shared_data共享数据，由ReLoc服务触发
+     */
     class LocalizerThread
     {
     public:
@@ -512,6 +520,10 @@ namespace IG_LIO
         Eigen::Vector3d local_pos_;
     };
 
+    /**
+     * @brief 主节点
+     * iG-LIO SLAM主要Node
+     */
     class MapBuilderNode : public rclcpp::Node
     {
     public:

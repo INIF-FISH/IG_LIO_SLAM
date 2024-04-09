@@ -718,11 +718,13 @@ bool TebLocalPlannerROS::transformGlobalPlan(const std::vector<geometry_msgs::ms
       *current_goal_idx = 0;
       return false;
     }
+
     // get plan_to_global_transform from plan frame to global_frame
     geometry_msgs::msg::TransformStamped plan_to_global_transform = tf_->lookupTransform(
                 global_frame, tf2_ros::fromMsg(plan_pose.header.stamp),
                 plan_pose.header.frame_id, tf2::timeFromSec(0),
                 plan_pose.header.frame_id, tf2::durationFromSec(0.5));
+
 //    tf_->waitForTransform(global_frame, ros::Time::now(),
 //    plan_pose.header.frame_id, plan_pose.header.stamp,
 //    plan_pose.header.frame_id, ros::Duration(0.5));
@@ -834,7 +836,7 @@ bool TebLocalPlannerROS::transformGlobalPlan(const std::vector<geometry_msgs::ms
   {
     RCLCPP_ERROR(logger_, "Extrapolation Error: %s\n", ex.what());
     if (global_plan.size() > 0)
-      RCLCPP_ERROR(logger_, "Global Frame: %s,  Plan Frame size: %d, %s\n", global_frame.c_str(), (unsigned int)global_plan.size(), global_plan[0].header.frame_id.c_str());
+      RCLCPP_ERROR(logger_, "Global Frame: %s Plan Frame size %d: %s\n", global_frame.c_str(), (unsigned int)global_plan.size(), global_plan[0].header.frame_id.c_str());
 
     return false;
   }
