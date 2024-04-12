@@ -354,20 +354,20 @@ namespace IG_LIO
     {
         if (body_cloud_pub_->get_subscription_count() == 0)
             return;
-        body_cloud_pub_->publish(cloud_to_pub);
+        body_cloud_pub_->publish(std::move(cloud_to_pub));
     }
 
     void MapBuilderNode::publishMapCloud(const sensor_msgs::msg::PointCloud2 &cloud_to_pub)
     {
         if (map_cloud_pub_->get_subscription_count() == 0)
             return;
-        map_cloud_pub_->publish(cloud_to_pub);
+        map_cloud_pub_->publish(std::move(cloud_to_pub));
     }
 
     void MapBuilderNode::publishLocalCloud(const sensor_msgs::msg::PointCloud2 &cloud_to_pub)
     {
         if (local_cloud_pub_->get_subscription_count() != 0)
-            local_cloud_pub_->publish(cloud_to_pub);
+            local_cloud_pub_->publish(std::move(cloud_to_pub));
     }
 
     void MapBuilderNode::publishBaseLink()
@@ -393,14 +393,14 @@ namespace IG_LIO
         transform.transform.rotation.x = q.x();
         transform.transform.rotation.y = q.y();
         transform.transform.rotation.z = q.z();
-        static_br_->sendTransform(transform);
+        static_br_->sendTransform(std::move(transform));
     }
 
     void MapBuilderNode::publishOdom(const nav_msgs::msg::Odometry &odom_to_pub)
     {
         if (odom_pub_->get_subscription_count() == 0)
             return;
-        odom_pub_->publish(odom_to_pub);
+        odom_pub_->publish(std::move(odom_to_pub));
     }
 
     void MapBuilderNode::publishLocalPath()
@@ -429,7 +429,7 @@ namespace IG_LIO
             pose.pose.orientation.w = q.w();
             path.poses.push_back(pose);
         }
-        local_path_pub_->publish(path);
+        local_path_pub_->publish(std::move(path));
     }
 
     void MapBuilderNode::publishGlobalPath()
@@ -457,7 +457,7 @@ namespace IG_LIO
             pose.pose.orientation.w = q.w();
             path.poses.push_back(pose);
         }
-        global_path_pub_->publish(path);
+        global_path_pub_->publish(std::move(path));
     }
 
     void MapBuilderNode::publishLoopMark()
@@ -517,7 +517,7 @@ namespace IG_LIO
         }
         marker_array.markers.push_back(nodes_marker);
         marker_array.markers.push_back(edges_marker);
-        loop_mark_pub_->publish(marker_array);
+        loop_mark_pub_->publish(std::move(marker_array));
     }
 
     void MapBuilderNode::saveMapCallBack(const ig_lio_c_msgs::srv::SaveMap::Request::SharedPtr request,

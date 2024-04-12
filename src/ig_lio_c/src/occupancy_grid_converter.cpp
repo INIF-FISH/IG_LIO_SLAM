@@ -239,7 +239,7 @@ namespace IG_LIO
     {
         if (this->occupancy_grid_pub_map_->get_subscription_count() != 0)
         {
-            this->occupancy_grid_pub_map_->publish(*occupancyGrid_to_pub);
+            this->occupancy_grid_pub_map_->publish(std::move(*occupancyGrid_to_pub));
         }
     }
 
