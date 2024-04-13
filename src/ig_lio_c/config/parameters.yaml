@@ -31,7 +31,7 @@ map_builder_node:
       imu_ext_pos: [-0.011, -0.02329, 0.04412]
 
     lio_slam:
-      ext_r: [3.14, 0., 0.]
+      ext_r: [3.14159265358979323846, 0., 0.] 
       ext_t: [-0.0151, 0., 0.]
 
     loop_closure:
