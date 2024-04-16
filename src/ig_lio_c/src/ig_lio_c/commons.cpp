@@ -54,7 +54,7 @@ namespace IG_LIO
                 IG_LIO::PointType p;
                 p.x = msg->points[i].x;
                 p.y = msg->points[i].y;
-                p.z = msg->points[i].z;
+                p.z = msg->points[i].z + height_offset;
                 p.intensity = float(msg->points[i].reflectivity);
                 p.curvature = float(msg->points[i].offset_time) / float(1000000);
                 if ((p.x * p.x + p.y * p.y + p.z * p.z) > (blind * blind))

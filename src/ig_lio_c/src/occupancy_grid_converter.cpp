@@ -20,8 +20,10 @@ namespace IG_LIO
     {
         this->declare_parameter<std::string>("robot_frame", "base_link");
         this->declare_parameter<int>("grid_map_cloud_size", 10);
-        this->declare_parameter<double>("occupancyGriddataMin", -0.1);
+        this->declare_parameter<double>("occupancyGriddataMin", 0.65);
         this->declare_parameter<double>("occupancyGriddataMax", 10.0);
+        this->declare_parameter<double>("point_min_height", 0.0);
+        this->declare_parameter<double>("point_max_height", 10.0);
         this->declare_parameter<double>("min_distance", 0.4);
         this->declare_parameter("filter_chain_parameter_name_local", std::string("filters_local"));
         this->declare_parameter("filter_chain_parameter_name_map", std::string("filters_map"));
@@ -29,6 +31,8 @@ namespace IG_LIO
         this->get_parameter("grid_map_cloud_size", grid_map_cloud_size);
         this->get_parameter("occupancyGriddataMin", occupancyGriddataMin);
         this->get_parameter("occupancyGriddataMax", occupancyGriddataMax);
+        this->get_parameter("point_min_height", point_min_height);
+        this->get_parameter("point_max_height", point_max_height);
         this->get_parameter("min_distance", min_distance);
         this->get_parameter("filter_chain_parameter_name_local", filterChainParametersName_local_);
         this->get_parameter("filter_chain_parameter_name_map", filterChainParametersName_map_);
@@ -86,16 +90,27 @@ namespace IG_LIO
         }
     }
 
-    grid_map::GridMap OccupancyGridConverterNode::makeGridMapFromDepth(const sensor_msgs::msg::PointCloud2 &cloud_to_make)
+    pcl::PointCloud<pcl::PointXYZ>::Ptr OccupancyGridConverterNode::filterPointCloudByHeightRange(const pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud)
     {
-        pcl::PointCloud<pcl::PointXYZ> in_cloud;
-        pcl::fromROSMsg(cloud_to_make, in_cloud);
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud_ptr = in_cloud.makeShared();
+
+        // 创建PassThrough滤波器
+        pcl::PassThrough<pcl::PointXYZ> pass;
+        pass.setInputCloud(input_cloud);
+        pass.setFilterFieldName("z");                             // 设置过滤字段为z轴
+        pass.setFilterLimits(point_min_height, point_max_height); // 设置高度范围
+        pass.filter(*cloud_filtered);                             // 应用过滤器
+
+        return cloud_filtered;
+    }
+
+    grid_map::GridMap OccupancyGridConverterNode::makeGridMapFromDepth(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud_ptr, builtin_interfaces::msg::Time stamp)
+    {
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
         geometry_msgs::msg::TransformStamped tf_map_to_base;
         try
         {
-            tf_map_to_base = tfBuffer_->lookupTransform("map", "base_link", cloud_to_make.header.stamp, rclcpp::Duration::from_seconds(0.1));
+            tf_map_to_base = tfBuffer_->lookupTransform("map", "base_link", stamp, rclcpp::Duration::from_seconds(0.1));
         }
         catch (const tf2::TransformException &ex)
         {
@@ -180,7 +195,11 @@ namespace IG_LIO
     void OccupancyGridConverterNode::pointCloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
     {
         RCLCPP_INFO(this->get_logger(), "Received PointCloud2 message. Height: %d, Width: %d", msg->height, msg->width);
-        auto gridMap = makeGridMapFromDepth(*msg);
+        pcl::PointCloud<pcl::PointXYZ> in_cloud;
+        pcl::fromROSMsg(*msg, in_cloud);
+        pcl::shared_ptr<grid_map::grid_map_pcl::Pointcloud> cloud_ptr = in_cloud.makeShared();
+        auto cloud_filtered = filterPointCloudByHeightRange(cloud_ptr);
+        auto gridMap = makeGridMapFromDepth(cloud_filtered, msg->header.stamp);
         publishGridMap(gridMap);
     }
 
@@ -255,6 +274,7 @@ namespace IG_LIO
             return;
         }
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+        auto cloud_filtered = filterPointCloudByHeightRange(cloud);
         if (pcl::io::loadPCDFile<pcl::PointXYZ>(request->pcd_path, *cloud) == -1)
         {
             PCL_ERROR("Couldn't read PCD file\n");
@@ -262,7 +282,7 @@ namespace IG_LIO
             response->message = "Failed to read PCD file";
             return;
         }
-        auto gridMap = makeGridMap(cloud);
+        auto gridMap = makeGridMap(cloud_filtered);
         auto occ_grid = createOccupancyGridMsg(gridMap);
         occ_grid->header.frame_id = "map";
         SaveParameters save_parameters;

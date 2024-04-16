@@ -11,6 +11,7 @@ map_builder_node:
     loop_rate_lc: 0.5
     loop_rate_l: 0.25
     blind: 0.4
+    height_offset: 0.7
 
     lio_builder:
       scan_resolution: 0.3
@@ -65,6 +66,8 @@ occupancy_grid_converter:
     grid_map_cloud_size: 10
     occupancyGriddataMin: 0.65
     occupancyGriddataMax: 20.0
+    point_min_height: 0.0
+    point_max_height: 10.0
     min_distance: 0.4
 
     filters_local:

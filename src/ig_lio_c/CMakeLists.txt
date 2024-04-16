@@ -105,6 +105,7 @@ set(sources_mapping_node
 )
 
 set(sources_converter
+  src/ig_lio_c/free_space_filter/FreeSpace.cpp
   src/occupancy_grid_converter.cpp
 )
 

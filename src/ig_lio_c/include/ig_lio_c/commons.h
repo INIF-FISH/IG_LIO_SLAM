@@ -68,6 +68,7 @@ namespace IG_LIO
         double blind = 0.35;
         int filter_num = 3;
         double last_timestamp = 0;
+        double height_offset = 0.0;
         void callback(const livox_ros_driver2::msg::CustomMsg::SharedPtr msg);
         void livox2pcl(const livox_ros_driver2::msg::CustomMsg::SharedPtr msg, IG_LIO::PointCloudXYZI::Ptr out);
     };
