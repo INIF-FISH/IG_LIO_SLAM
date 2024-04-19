@@ -4,7 +4,7 @@ map_builder_node:
     map_frame: map
     local_frame: local
     body_frame: odom
-    imu_topic: /imu/data
+    imu_topic: /livox/imu
     livox_topic: /livox/lidar
     dynamic_point_cloud_removal_config: config_fg.yaml
     local_rate: 300.0
