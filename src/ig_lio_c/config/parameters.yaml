@@ -11,7 +11,7 @@ map_builder_node:
     loop_rate_lc: 0.5
     loop_rate_l: 0.25
     blind: 0.4
-    height_offset: 0.7
+    height_offset: 0.0 # do not change this yet
 
     lio_builder:
       scan_resolution: 0.3
