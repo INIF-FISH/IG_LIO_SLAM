@@ -5,11 +5,18 @@ namespace IG_LIO
     MapBuilderNode::MapBuilderNode(const rclcpp::NodeOptions &options)
         : Node("map_builder", options)
     {
+        RCLCPP_INFO_STREAM(this->get_logger(), GREEN << "Starting map_builder node ..." << RESET);
+        RCLCPP_INFO_STREAM(this->get_logger(), BLUE << "processing params ..." << RESET);
         param_respond();
+        RCLCPP_INFO_STREAM(this->get_logger(), BLUE << "processing subscribers ..." << RESET);
         initSubscribers();
+        RCLCPP_INFO_STREAM(this->get_logger(), BLUE << "processing publishers ..." << RESET);
         initPublishers();
+        RCLCPP_INFO_STREAM(this->get_logger(), BLUE << "processing serivces ..." << RESET);
         initSerivces();
+        RCLCPP_INFO_STREAM(this->get_logger(), BLUE << "processing init ..." << RESET);
         init();
+        RCLCPP_INFO_STREAM(this->get_logger(), GREEN << "DONE." << RESET);
     }
 
     MapBuilderNode::~MapBuilderNode()
@@ -265,7 +272,10 @@ namespace IG_LIO
             return;
         current_time_ = measure_group_.lidar_time_end;
         current_state_ = lio_builder_->currentState();
-        RCLCPP_INFO_STREAM(this->get_logger(), "ba: " << current_state_.ba.transpose() << " ba_norm: " << current_state_.ba.norm() << " bg: " << current_state_.bg.transpose() * 180.0 / M_PI << " bg_norm: " << current_state_.bg.norm() * 180.0 / M_PI);
+        RCLCPP_INFO_STREAM(this->get_logger(), MAGENTA << "ba: " << current_state_.ba.transpose()
+                                                       << " ba_norm: " << current_state_.ba.norm()
+                                                       << " bg: " << current_state_.bg.transpose() * 180.0 / M_PI
+                                                       << " bg_norm: " << current_state_.bg.norm() * 180.0 / M_PI << RESET);
         current_cloud_body_ = lio_builder_->cloudUndistortedBody();
         {
             std::lock_guard<std::mutex> lock(shared_data_->mutex);
@@ -562,7 +572,7 @@ namespace IG_LIO
         else
             output_file = "octomap";
         auto static_cloud = map_updater.getRawMap();
-         if (static_cloud->empty())
+        if (static_cloud->empty())
         {
             response->status = false;
             response->message = "Empty cloud!";
@@ -633,7 +643,7 @@ bool terminate_flag = false;
 
 void signalHandler(int signum)
 {
-    std::cout << "SHUTTING DOWN MAPPING NODE!" << std::endl;
+    std::cout << RED << "SHUTTING DOWN MAPPING NODE!" << RESET << std::endl;
     terminate_flag = true;
 }
 

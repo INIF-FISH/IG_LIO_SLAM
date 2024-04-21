@@ -27,7 +27,8 @@
 
 #include <tbb/parallel_for.h>
 
-#include <./ig_lio_c/free_space_filter/FreeSpace.hpp>
+#include "./ig_lio_c/free_space_filter/FreeSpace.hpp"
+#include "./ig_lio_c/color.h"
 
 namespace IG_LIO
 {

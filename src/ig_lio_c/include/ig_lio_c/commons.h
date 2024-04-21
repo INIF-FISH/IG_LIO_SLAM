@@ -16,6 +16,8 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 
+#include "color.h"
+
 #define NUM_MATCH_POINTS (5)
 #define NUM_MAX_POINTS (10000)
 

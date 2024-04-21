@@ -3,13 +3,20 @@
 namespace IG_LIO
 {
     OccupancyGridConverterNode::OccupancyGridConverterNode(const rclcpp::NodeOptions &options)
-        : Node("map_builder", options), filterChain_local_("grid_map::GridMap"), filterChain_map_("grid_map::GridMap")
+        : Node("occupancy_grid_converter", options), filterChain_local_("grid_map::GridMap"), filterChain_map_("grid_map::GridMap")
     {
+        RCLCPP_INFO_STREAM(this->get_logger(), GREEN << "Starting occupancy_grid_converter node ..." << RESET);
+        RCLCPP_INFO_STREAM(this->get_logger(), BLUE << "processing params ..." << RESET);
         param_respond();
+        RCLCPP_INFO_STREAM(this->get_logger(), BLUE << "processing subscribers ..." << RESET);
         initSubscribers();
+        RCLCPP_INFO_STREAM(this->get_logger(), BLUE << "processing publishers ..." << RESET);
         initPublishers();
+        RCLCPP_INFO_STREAM(this->get_logger(), BLUE << "processing serivces ..." << RESET);
         initSerivces();
+        RCLCPP_INFO_STREAM(this->get_logger(), BLUE << "processing init ..." << RESET);
         init();
+        RCLCPP_INFO_STREAM(this->get_logger(), GREEN << "DONE." << RESET);
     }
 
     OccupancyGridConverterNode::~OccupancyGridConverterNode()
@@ -68,11 +75,11 @@ namespace IG_LIO
                 filterChainParametersName_local_, this->get_node_logging_interface(),
                 this->get_node_parameters_interface()))
         {
-            RCLCPP_INFO(this->get_logger(), "Filter chain local configured.");
+            RCLCPP_INFO_STREAM(this->get_logger(), GREEN << "Filter chain local configured." << RESET);
         }
         else
         {
-            RCLCPP_ERROR(this->get_logger(), "Could not configure the filter chain local!");
+            RCLCPP_ERROR_STREAM(this->get_logger(), RED << "Could not configure the filter chain local!" << RESET);
             rclcpp::shutdown();
             return;
         }
@@ -80,11 +87,11 @@ namespace IG_LIO
                 filterChainParametersName_map_, this->get_node_logging_interface(),
                 this->get_node_parameters_interface()))
         {
-            RCLCPP_INFO(this->get_logger(), "Filter chain map configured.");
+            RCLCPP_INFO_STREAM(this->get_logger(), GREEN << "Filter chain map configured." << RESET);
         }
         else
         {
-            RCLCPP_ERROR(this->get_logger(), "Could not configure the filter chain map!");
+            RCLCPP_ERROR_STREAM(this->get_logger(), RED << "Could not configure the filter chain map!" << RESET);
             rclcpp::shutdown();
             return;
         }
@@ -158,7 +165,7 @@ namespace IG_LIO
         grid_map::GridMap outputMap;
         if (!filterChain_local_.update(gridMap, outputMap))
         {
-            RCLCPP_ERROR(this->get_logger(), "Could not update the grid map filter chain local!");
+            RCLCPP_ERROR_STREAM(this->get_logger(), RED << "Could not update the grid map filter chain local!" << RESET);
             return gridMap;
         }
         grid_map::Size size = outputMap.getSize();
@@ -186,7 +193,7 @@ namespace IG_LIO
         grid_map::GridMap outputMap;
         if (!filterChain_map_.update(gridMap, outputMap))
         {
-            RCLCPP_ERROR(this->get_logger(), "Could not update the grid map filter chain map!");
+            RCLCPP_ERROR_STREAM(this->get_logger(), RED << "Could not update the grid map filter chain map!" << RESET);
             return gridMap;
         }
         return outputMap;
@@ -194,7 +201,7 @@ namespace IG_LIO
 
     void OccupancyGridConverterNode::pointCloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
     {
-        RCLCPP_INFO(this->get_logger(), "Received PointCloud2 message. Height: %d, Width: %d", msg->height, msg->width);
+        RCLCPP_INFO_STREAM(this->get_logger(), MAGENTA << "Received PointCloud2 message. Height: " << msg->height << ", Width: " << msg->width << RESET);
         pcl::PointCloud<pcl::PointXYZ> in_cloud;
         pcl::fromROSMsg(*msg, in_cloud);
         pcl::shared_ptr<grid_map::grid_map_pcl::Pointcloud> cloud_ptr = in_cloud.makeShared();
@@ -268,7 +275,7 @@ namespace IG_LIO
         Magick::InitializeMagick(nullptr);
         if (request->pcd_path.empty())
         {
-            PCL_ERROR("PCD file_path empty !\n");
+            RCLCPP_ERROR_STREAM(this->get_logger(), RED << "PCD file_path empty !" << RESET);
             response->status = 0;
             response->message = "Failed to read PCD file";
             return;
@@ -276,11 +283,11 @@ namespace IG_LIO
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
         if (pcl::io::loadPCDFile<pcl::PointXYZ>(request->pcd_path, *cloud) == -1)
         {
-            PCL_ERROR("Couldn't read PCD file\n");
+            RCLCPP_ERROR_STREAM(this->get_logger(), RED << "Couldn't read PCD file" << RESET);
             response->status = 0;
             response->message = "Failed to read PCD file";
             return;
-        } 
+        }
         auto cloud_filtered = filterPointCloudByHeightRange(cloud);
         auto gridMap = makeGridMap(cloud_filtered);
         auto occ_grid = createOccupancyGridMsg(gridMap);
@@ -291,7 +298,7 @@ namespace IG_LIO
         }
         if (request->map_file_name.empty())
         {
-            std::cout << "Non map_file_name, using map." << std::endl;
+            RCLCPP_WARN_STREAM(this->get_logger(), YELLOW << "Non map_file_name, using map." << RESET);
             save_parameters.map_file_name = "map";
         }
         else
@@ -300,7 +307,7 @@ namespace IG_LIO
         }
         if (request->occupied_thresh == 0.0)
         {
-            std::cout << "Non occupied_thresh, using 0.65." << std::endl;
+            RCLCPP_WARN_STREAM(this->get_logger(), YELLOW << "Non occupied_thresh, using 0.65." << RESET);
             save_parameters.occupied_thresh = 0.65;
         }
         else
@@ -309,7 +316,7 @@ namespace IG_LIO
         }
         if (request->free_thresh == 0.0)
         {
-            std::cout << "Non free_thresh, using 0.25." << std::endl;
+            RCLCPP_WARN_STREAM(this->get_logger(), YELLOW << "Non free_thresh, using 0.25." << RESET);
             save_parameters.free_thresh = 0.25;
         }
         else
@@ -323,12 +330,12 @@ namespace IG_LIO
         catch (std::invalid_argument &)
         {
             save_parameters.mode = nav2_map_server::MapMode::Trinary;
-            std::cout << "Map mode parameter not recognized: " << request->map_mode.c_str() << ", using default value (trinary)" << std::endl;
+            RCLCPP_WARN_STREAM(this->get_logger(), YELLOW << "Map mode parameter not recognized: " << request->map_mode.c_str() << ", using default value (trinary)" << RESET);
         }
         if (save_parameters.image_format == "")
         {
             save_parameters.image_format = save_parameters.mode == nav2_map_server::MapMode::Scale ? "png" : "pgm";
-            std::cout << "[WARN] [covertMapCallBack]: Image format unspecified. Setting it to: " << save_parameters.image_format << std::endl;
+            RCLCPP_WARN_STREAM(this->get_logger(), YELLOW << "[WARN] [covertMapCallBack]: Image format unspecified. Setting it to: " << save_parameters.image_format << RESET);
         }
 
         std::transform(
@@ -354,7 +361,7 @@ namespace IG_LIO
                 ss << "'" << format_name << "'";
                 first = false;
             }
-            std::cout << "[WARN] [covertMapCallBack]: Requested image format '" << save_parameters.image_format << "' is not one of the recommended formats: " << ss.str() << std::endl;
+            RCLCPP_WARN_STREAM(this->get_logger(), YELLOW << "[WARN] [covertMapCallBack]: Requested image format '" << save_parameters.image_format << "' is not one of the recommended formats: " << ss.str() << RESET);
         }
         const std::string FALLBACK_FORMAT = "png";
 
@@ -363,14 +370,13 @@ namespace IG_LIO
             Magick::CoderInfo info(save_parameters.image_format);
             if (!info.isWritable())
             {
-                std::cout << "[WARN] [covertMapCallBack]: Format '" << save_parameters.image_format << "' is not writable. Using '" << FALLBACK_FORMAT << "' instead" << std::endl;
+                RCLCPP_WARN_STREAM(this->get_logger(), YELLOW << "[WARN] [covertMapCallBack]: Format '" << save_parameters.image_format << "' is not writable. Using '" << FALLBACK_FORMAT << "' instead" << RESET);
                 save_parameters.image_format = FALLBACK_FORMAT;
             }
         }
         catch (Magick::ErrorOption &e)
         {
-            std::cout << "[WARN] [covertMapCallBack]: Format '" << save_parameters.image_format << "' is not usable. Using '" << FALLBACK_FORMAT << "' instead:" << std::endl
-                      << e.what() << std::endl;
+            RCLCPP_ERROR_STREAM(this->get_logger(), RED << "[ERROR] [covertMapCallBack]: ERR " << e.what() << RESET);
             save_parameters.image_format = FALLBACK_FORMAT;
         }
 
@@ -380,7 +386,7 @@ namespace IG_LIO
              save_parameters.image_format == "jpg" ||
              save_parameters.image_format == "jpeg"))
         {
-            std::cout << "[WARN] [covertMapCallBack]: Map mode 'scale' requires transparency, but format '" << save_parameters.image_format << "' does not support it. Consider switching image format to 'png'." << std::endl;
+            RCLCPP_WARN_STREAM(this->get_logger(), YELLOW << "[WARN] [covertMapCallBack]: Map mode 'scale' requires transparency, but format '" << save_parameters.image_format << "' does not support it. Consider switching image format to 'png'." << RESET);
         }
         tryWriteMapToFile(*occ_grid, save_parameters);
         publishOccupancyGridMapMap(occ_grid);
@@ -392,7 +398,7 @@ namespace IG_LIO
         const nav_msgs::msg::OccupancyGrid &map,
         const SaveParameters &save_parameters)
     {
-        std::cout << "[INFO] [tryWriteMapToFile]: Received a " << map.info.width << " X " << map.info.height << " map @ " << map.info.resolution << " m/pix" << std::endl;
+        RCLCPP_INFO_STREAM(this->get_logger(), MAGENTA << "[INFO] [tryWriteMapToFile]: Received a " << map.info.width << " X " << map.info.height << " map @ " << map.info.resolution << " m/pix" << RESET);
 
         std::string mapdatafile = save_parameters.map_file_name + "." + save_parameters.image_format;
         {
@@ -457,14 +463,14 @@ namespace IG_LIO
                         pixel = Magick::Color(q, q, q);
                         break;
                     default:
-                        std::cerr << "[ERROR] [tryWriteMapToFile]: Map mode should be Trinary, Scale or Raw" << std::endl;
+                        RCLCPP_ERROR_STREAM(this->get_logger(), RED << "[ERROR] [tryWriteMapToFile]: Map mode should be Trinary, Scale or Raw" << RESET);
                         throw std::runtime_error("Invalid map mode");
                     }
                     image.pixelColor(x, y, pixel);
                 }
             }
 
-            std::cout << "[INFO] [tryWriteMapToFile]: Writing map occupancy data to " << mapdatafile << std::endl;
+            RCLCPP_INFO_STREAM(this->get_logger(), MAGENTA << "[INFO] [tryWriteMapToFile]: Writing map occupancy data to " << mapdatafile << RESET);
             image.write(mapdatafile);
         }
 
@@ -490,13 +496,13 @@ namespace IG_LIO
 
             if (!e.good())
             {
-                std::cout << "[WARN] [tryWriteMapToFile]: YAML writer failed with an error " << e.GetLastError() << ". The map metadata may be invalid." << std::endl;
+                RCLCPP_WARN_STREAM(this->get_logger(), YELLOW << "[WARN] [tryWriteMapToFile]: YAML writer failed with an error " << e.GetLastError() << ". The map metadata may be invalid." << RESET);
             }
 
-            std::cout << "[INFO] [tryWriteMapToFile]: Writing map metadata to " << mapmetadatafile << std::endl;
+            RCLCPP_INFO_STREAM(this->get_logger(), MAGENTA << "[INFO] [tryWriteMapToFile]: Writing map metadata to " << mapmetadatafile << RESET);
             std::ofstream(mapmetadatafile) << e.c_str();
         }
-        std::cout << "[INFO] [tryWriteMapToFile]: Map saved" << std::endl;
+        RCLCPP_INFO_STREAM(this->get_logger(), MAGENTA << "[INFO] [tryWriteMapToFile]: Map saved" << RESET);
     }
 } // namespace IG_LIO
 

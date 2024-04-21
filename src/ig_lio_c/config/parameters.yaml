@@ -41,8 +41,8 @@ map_builder_node:
       dist_thresh: 1.0 # 距离阈值
       time_thresh: 30.0 # 时间阈值
       loop_pose_search_radius: 15.0 # 回环检测搜索半径
-      loop_pose_index_thresh: 25  # 回环检测历史帧搜索范围
-      submap_resolution: 0.3  # 子图分辨率
+      loop_pose_index_thresh: 25 # 回环检测历史帧搜索范围
+      submap_resolution: 0.3 # 子图分辨率
       submap_search_num: 25 # 子图搜索数量
       loop_icp_thresh: 0.3 # icp阈值
 
@@ -50,7 +50,7 @@ map_builder_node:
       reloc_on_init: False # 启用重定位
       pcd_path: "/home/nine-fish/7.pcd" # 重定位使用的点云地图
       xyz_rpy: [0.0, 0.0, 0.0, 3.14, 0.0, 0.0] # 重定位初始位资
-      refine_resolution: 0.15 
+      refine_resolution: 0.15
       rough_resolution: 0.3
       refine_iter: 5.
       rough_iter: 10.
@@ -75,6 +75,8 @@ occupancy_grid_converter:
         name: surface_normals
         type: gridMapFilters/NormalVectorsFilter
         params:
+          algorithm: area
+          parallelization_enabled: False
           input_layer: elevation
           output_layers_prefix: normal_vectors_
           radius: 0.2
@@ -84,6 +86,8 @@ occupancy_grid_converter:
         name: slope
         type: gridMapFilters/MathExpressionFilter
         params:
+          algorithm: area
+          parallelization_enabled: False
           output_layer: slope
           expression: acos(normal_vectors_z)
 
@@ -92,6 +96,8 @@ occupancy_grid_converter:
         name: surface_normals
         type: gridMapFilters/NormalVectorsFilter
         params:
+          algorithm: area
+          parallelization_enabled: False
           input_layer: elevation
           output_layers_prefix: normal_vectors_
           radius: 0.2
@@ -101,5 +107,7 @@ occupancy_grid_converter:
         name: slope
         type: gridMapFilters/MathExpressionFilter
         params:
+          algorithm: area
+          parallelization_enabled: False
           output_layer: slope
           expression: acos(normal_vectors_z)
