@@ -274,14 +274,14 @@ namespace IG_LIO
             return;
         }
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-        auto cloud_filtered = filterPointCloudByHeightRange(cloud);
         if (pcl::io::loadPCDFile<pcl::PointXYZ>(request->pcd_path, *cloud) == -1)
         {
             PCL_ERROR("Couldn't read PCD file\n");
             response->status = 0;
             response->message = "Failed to read PCD file";
             return;
-        }
+        } 
+        auto cloud_filtered = filterPointCloudByHeightRange(cloud);
         auto gridMap = makeGridMap(cloud_filtered);
         auto occ_grid = createOccupancyGridMsg(gridMap);
         occ_grid->header.frame_id = "map";
