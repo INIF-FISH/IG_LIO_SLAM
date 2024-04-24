@@ -2,7 +2,7 @@
 
 本项目用于iG-LIO算法于ROS2框架下的导航部署，为添加2.5D地形导航能力，使用grid_map进行障碍检测
 
-集成DWA/DWB、TEB两种局部规划器，目前适用于Livox Mid-360激光雷达，兼容任意安装方案 注：正放雷达时需要对点云进行高度滤除，防止天花板被加进障碍图（后续更新）
+集成DWA/DWB、TEB两种局部规划器，目前适用于Livox Mid-360激光雷达，兼容任意安装方案 注：目前适配倒置安装方案，其他安装方案请注意修改参数
 
 | 工作基于                                             |
 | ---------------------------------------------------- |
@@ -69,3 +69,9 @@ ros2 service call /SaveMap ig_lio_c_msgs/srv/SaveMap "{save_path: '/home/XXX', r
 ```
 ros2 service call /CovertMap ig_lio_c_msgs/srv/CovertMap "{pcd_path: '/home/XXX/XXX.pcd',map_file_name: 'XXX_map'}"
 ```
+
+#### 效果图
+
+![](doc/map_pcd.png)
+
+![](doc/map.png)
