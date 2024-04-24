@@ -476,6 +476,7 @@ namespace IG_LIO
                         rectify = true;
                         shared_data_->localizer_activate = true;
                         shared_data_->localizer_service_success = true;
+                        // shared_data_->localizer_service_called = false;
                     }
 
                     else
