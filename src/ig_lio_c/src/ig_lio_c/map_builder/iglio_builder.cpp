@@ -224,22 +224,29 @@ namespace IG_LIO
     PointCloudXYZI::Ptr IGLIOBuilder::transformToWorld(const PointCloudXYZI::Ptr cloud)
     {
         PointCloudXYZI::Ptr cloud_world(new PointCloudXYZI);
+        cloud_world->resize(cloud->size());
+
         Eigen::Matrix3d rot = kf_->x().rot;
         Eigen::Vector3d pos = kf_->x().pos;
         Eigen::Matrix3d rot_ext = kf_->x().rot_ext;
         Eigen::Vector3d pos_ext = kf_->x().pos_ext;
-        cloud_world->reserve(cloud->size());
-        for (auto &p : cloud->points)
-        {
-            Eigen::Vector3d point(p.x, p.y, p.z);
-            point = rot * (rot_ext * point + pos_ext) + pos;
-            PointType p_world;
-            p_world.x = point(0);
-            p_world.y = point(1);
-            p_world.z = point(2);
-            p_world.intensity = p.intensity;
-            cloud_world->points.push_back(p_world);
-        }
+
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, cloud->size()),
+                          [&](const tbb::blocked_range<size_t> &r)
+                          {
+                              for (size_t i = r.begin(); i < r.end(); ++i)
+                              {
+                                  Eigen::Vector3d point(cloud->points[i].x, cloud->points[i].y, cloud->points[i].z);
+                                  point = rot * (rot_ext * point + pos_ext) + pos;
+
+                                  PointType &p_world = cloud_world->points[i];
+                                  p_world.x = point(0);
+                                  p_world.y = point(1);
+                                  p_world.z = point(2);
+                                  p_world.intensity = cloud->points[i].intensity;
+                              }
+                          });
+
         return cloud_world;
     }
 

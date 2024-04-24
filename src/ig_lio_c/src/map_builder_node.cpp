@@ -52,6 +52,7 @@ namespace IG_LIO
         this->declare_parameter<double>("blind", 0.5);
         this->declare_parameter<double>("height_offset", 0.7);
         this->get_parameter("blind", livox_data_.blind);
+        livox_data_.calcBlindFieldByBlind();
         this->get_parameter("height_offset", livox_data_.height_offset);
         this->declare_parameter<double>("lio_builder.scan_resolution", 0.3);
         this->declare_parameter<double>("lio_builder.map_resolution", 0.3);

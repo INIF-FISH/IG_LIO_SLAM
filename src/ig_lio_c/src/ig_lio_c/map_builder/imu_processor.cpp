@@ -60,23 +60,16 @@ namespace IG_LIO
             Eigen::Matrix3d rotation_row_pitch = (Eigen::Quaterniond::FromTwoVectors((-mean_acc_).normalized(), Eigen::Vector3d(0.0, 0.0, -1.0)).matrix());
             Eigen::Vector3d rpy = rotation_row_pitch.eulerAngles(0, 1, 2);
             double yaw_angle = rpy[2];
-            if(yaw_angle > 0.)
-            {
-                rpy[2] = 0.;
-            }
-            else
-            {
-                rpy[2] = M_PI;
-            }
+            rpy[2] = yaw_angle > 0. ? 0. : M_PI;
             Eigen::Matrix3d modifiedRotationMatrix;
             modifiedRotationMatrix = Eigen::AngleAxisd(rpy[0], Eigen::Vector3d::UnitX()) * Eigen::AngleAxisd(rpy[1], Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(rpy[2], Eigen::Vector3d::UnitZ());
             state.rot = modifiedRotationMatrix;
             state.initG(Eigen::Vector3d(0, 0, -1.0));
         }
-        else if(set_initpose_)
+        else if (set_initpose_)
         {
             Eigen::Vector3d rpy;
-            rpy << ext_r_[0] , ext_r_[1], ext_r_[2];
+            rpy << ext_r_[0], ext_r_[1], ext_r_[2];
             Eigen::Matrix3d modifiedRotationMatrix;
             modifiedRotationMatrix = Eigen::AngleAxisd(rpy[0], Eigen::Vector3d::UnitX()) * Eigen::AngleAxisd(rpy[1], Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(rpy[2], Eigen::Vector3d::UnitZ());
             state.rot = modifiedRotationMatrix.inverse();
