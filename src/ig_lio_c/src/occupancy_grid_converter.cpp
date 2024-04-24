@@ -206,6 +206,11 @@ namespace IG_LIO
         pcl::fromROSMsg(*msg, in_cloud);
         pcl::shared_ptr<grid_map::grid_map_pcl::Pointcloud> cloud_ptr = in_cloud.makeShared();
         auto cloud_filtered = filterPointCloudByHeightRange(cloud_ptr);
+        if (cloud_filtered->points.size() < 100)
+        {
+            RCLCPP_ERROR_STREAM(this->get_logger(), RED << "Couldn't find enough fit points !" << RESET);
+            return;
+        }
         auto gridMap = makeGridMapFromDepth(cloud_filtered, msg->header.stamp);
         publishGridMap(gridMap);
     }
@@ -289,6 +294,13 @@ namespace IG_LIO
             return;
         }
         auto cloud_filtered = filterPointCloudByHeightRange(cloud);
+        if (cloud_filtered->points.size() < 100)
+        {
+            RCLCPP_ERROR_STREAM(this->get_logger(), RED << "Couldn't find enough fit points !" << RESET);
+            response->status = 0;
+            response->message = "Couldn't find fit points !";
+            return;
+        }
         auto gridMap = makeGridMap(cloud_filtered);
         auto occ_grid = createOccupancyGridMsg(gridMap);
         occ_grid->header.frame_id = "map";
@@ -510,7 +522,7 @@ bool terminate_flag = false;
 
 void signalHandler(int signum)
 {
-    std::cout << "SHUTTING DOWN CONVERTER NODE!" << std::endl;
+    std::cout << RED << "SHUTTING DOWN CONVERTER NODE!" << RESET << std::endl;
     terminate_flag = true;
 }
 
