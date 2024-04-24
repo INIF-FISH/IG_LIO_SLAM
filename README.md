@@ -39,6 +39,13 @@ src/ig_lio_c/config/parameters.yaml
 
 #### 命令
 
+增加UDP缓冲区
+
+```
+sudo sysctl -w net.core.rmem_max=16777216
+sudo sysctl -w net.core.rmem_default=16777216
+```
+
 建图与定位
 
 ```
