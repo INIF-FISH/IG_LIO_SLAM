@@ -191,7 +191,7 @@ namespace IG_LIO
         shared_state.b.setZero();
 
         Eigen::Matrix<double, 3, 12> J;
-        for (int i = 0; i < gicp_cache_.size(); i++)
+        for (std::size_t i = 0; i < gicp_cache_.size(); i++)
         {
             GICPCorrespond &gicp_corr = gicp_cache_[i];
             Eigen::Vector3d p_lidar = gicp_corr.meanA;

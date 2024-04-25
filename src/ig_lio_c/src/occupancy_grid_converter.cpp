@@ -147,7 +147,7 @@ namespace IG_LIO
                                   }
                               }
                           });
-        if (grid_map_cloud_.size() == grid_map_cloud_size)
+        if (grid_map_cloud_.size() == std::size_t(grid_map_cloud_size))
             grid_map_cloud_.pop_front();
         grid_map_cloud_.push_back(cloud_filtered);
         pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud(new pcl::PointCloud<pcl::PointXYZ>);
@@ -168,7 +168,6 @@ namespace IG_LIO
             RCLCPP_ERROR_STREAM(this->get_logger(), RED << "Could not update the grid map filter chain local!" << RESET);
             return gridMap;
         }
-        grid_map::Size size = outputMap.getSize();
         for (grid_map::GridMapIterator iterator(gridMap); !iterator.isPastEnd(); ++iterator)
         {
             grid_map::Index index = *iterator;

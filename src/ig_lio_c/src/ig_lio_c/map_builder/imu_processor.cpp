@@ -57,13 +57,8 @@ namespace IG_LIO
         state.bg = mean_gyro_;
         if (align_gravity_ && !set_initpose_)
         {
-            Eigen::Matrix3d rotation_row_pitch = (Eigen::Quaterniond::FromTwoVectors((-mean_acc_).normalized(), Eigen::Vector3d(0.0, 0.0, -1.0)).matrix());
-            Eigen::Vector3d rpy = rotation_row_pitch.eulerAngles(0, 1, 2);
-            double yaw_angle = rpy[2];
-            rpy[2] = yaw_angle > 0. ? 0. : M_PI;
-            Eigen::Matrix3d modifiedRotationMatrix;
-            modifiedRotationMatrix = Eigen::AngleAxisd(rpy[0], Eigen::Vector3d::UnitX()) * Eigen::AngleAxisd(rpy[1], Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(rpy[2], Eigen::Vector3d::UnitZ());
-            state.rot = modifiedRotationMatrix;
+            Eigen::Matrix3d RotationMatrix = (Eigen::Quaterniond::FromTwoVectors((-mean_acc_).normalized(), Eigen::Vector3d(0.0, 0.0, -1.0)).matrix());
+            state.rot = RotationMatrix;
             state.initG(Eigen::Vector3d(0, 0, -1.0));
         }
         else if (set_initpose_)
@@ -97,7 +92,6 @@ namespace IG_LIO
 
         std::deque<IMU> v_imus(meas.imus.begin(), meas.imus.end());
         v_imus.push_front(last_imu_);
-        const double imu_time_begin = v_imus.front().timestamp;
         const double imu_time_end = v_imus.back().timestamp;
         const double lidar_time_begin = meas.lidar_time_begin;
         const double lidar_time_end = meas.lidar_time_end;

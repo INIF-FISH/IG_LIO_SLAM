@@ -21,8 +21,8 @@ map_builder_node:
       map_capacity: 5000000 # 地图容量
       grid_capacity: 20 # VoxelMap grid容量
       extrinsic_est_en: True # 外参估计
-      align_gravity: False # 启用重力对齐（与set_initpose冲突）
-      set_initpose: True # 设置初始位姿（使用base_link变换）【覆盖align_gravity】
+      align_gravity: True # 启用重力对齐（与set_initpose冲突）
+      set_initpose: False # 设置初始位姿（使用base_link变换）【覆盖align_gravity】
       near_mode: 1 # 邻近点搜索模式
       #---噪声---# //一般保持此项即可//
       acc_cov: 0.1 # 加速度计测量误差协方差
