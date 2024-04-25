@@ -160,7 +160,7 @@ namespace IG_LIO
         gridMapPclLoader->addLayerFromInputCloud("elevation");
         auto gridMap = gridMapPclLoader->getGridMap();
 
-        gridMap.setFrameId("map");
+        gridMap.setFrameId("local");
         gridMap.setTimestamp(this->get_clock()->now().nanoseconds());
         grid_map::GridMap outputMap;
         if (!filterChain_local_.update(gridMap, outputMap))

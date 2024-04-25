@@ -278,15 +278,6 @@ namespace IG_LIO
                                                        << " bg: " << current_state_.bg.transpose() * 180.0 / M_PI
                                                        << " bg_norm: " << current_state_.bg.norm() * 180.0 / M_PI << RESET);
         current_cloud_body_ = lio_builder_->cloudUndistortedBody();
-        if (current_state_.bg.norm() * 180.0 / M_PI > 1.0)
-        {
-            RCLCPP_WARN_STREAM(this->get_logger(), YELLOW << "bg_norm too large, jump map process!" << RESET);
-            // std::lock_guard<std::mutex> lock(shared_data_->mutex);
-            // shared_data_->reset_flag = true;
-            // shared_data_->cloud = current_cloud_body_;
-            // shared_data_->localizer_service_called = true;
-            return;
-        }
         {
             std::lock_guard<std::mutex> lock(shared_data_->mutex);
             shared_data_->local_rot = current_state_.rot;
@@ -295,6 +286,11 @@ namespace IG_LIO
             offset_rot_ = shared_data_->offset_rot;
             offset_pos_ = shared_data_->offset_pos;
             shared_data_->pose_updated = true;
+        }
+        if (current_state_.bg.norm() * 180.0 / M_PI > 1.0)
+        {
+            RCLCPP_WARN_STREAM(this->get_logger(), YELLOW << "bg_norm too large, jump map process!" << RESET);
+            return;
         }
         br_->sendTransform(eigen2Transform(shared_data_->offset_rot,
                                            shared_data_->offset_pos,
