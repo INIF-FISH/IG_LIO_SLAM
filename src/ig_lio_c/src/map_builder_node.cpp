@@ -649,8 +649,17 @@ bool terminate_flag = false;
 
 void signalHandler(int signum)
 {
-    std::cout << RED << "SHUTTING DOWN MAPPING NODE!" << RESET << std::endl;
-    terminate_flag = true;
+    switch (signum)
+    {
+    case SIGALRM:
+        break;
+    case SIGINT:
+        std::cout << RED << "SHUTTING DOWN MAPPING NODE!" << RESET << std::endl;
+        terminate_flag = true;
+        break;
+    default:
+        break;
+    }
 }
 
 int main(int argc, char **argv)

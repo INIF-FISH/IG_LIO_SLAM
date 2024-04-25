@@ -94,4 +94,4 @@ namespace IG_LIO
     };
 } // namespace IG_LIO
 
-#endif _IMU_PROCESSOR_H
+#endif // _IMU_PROCESSOR_H

@@ -201,7 +201,7 @@ namespace IG_LIO
                 }
                 if (!loop_params_.activate)
                     continue;
-                if (shared_data_->key_poses.size() < loop_params_.loop_pose_index_thresh)
+                if (shared_data_->key_poses.size() < std::size_t(loop_params_.loop_pose_index_thresh))
                     continue;
                 if (!shared_data_->key_pose_added)
                     continue;
@@ -281,7 +281,7 @@ namespace IG_LIO
             std::vector<float> sqdists;
             kdtree_history_poses_->radiusSearch(cloud_history_poses_->back(), loop_params_.loop_pose_search_radius, ids, sqdists, 0);
 
-            for (int i = 0; i < ids.size(); i++)
+            for (std::size_t i = 0; i < ids.size(); i++)
             {
                 int id = ids[i];
                 if (std::abs(temp_poses_[id].time - temp_poses_.back().time) > loop_params_.time_thresh && std::abs(cur_index - id) >= loop_params_.loop_pose_index_thresh)
