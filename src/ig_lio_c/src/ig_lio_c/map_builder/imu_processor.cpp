@@ -2,8 +2,30 @@
 
 namespace IG_LIO
 {
-    IMUProcessor::IMUProcessor(std::shared_ptr<IG_LIO::IESKF> kf)
-        : kf_(kf), init_count_(0), last_lidar_time_end_(0.0),
+    void PiontIMU::update(IG_LIO::IMU &imu)
+    {
+        std::lock_guard<std::mutex> lck(mutex_);
+        double deltaT = imu.timestamp - lastIMUT_;
+        lastIMUT_ = imu.timestamp;
+        w_ = imu.gyro;
+        Eigen::Matrix3d B;
+        B << 0., -w_[2] * deltaT, w_[1] * deltaT,
+            w_[2] * deltaT, 0., -w_[0] * deltaT,
+            -w_[1] * deltaT, w_[0] * deltaT, 0.;
+        double sigma =
+            std::sqrt(std::pow(w_[0], 2) + std::pow(w_[1], 2) + std::pow(w_[2], 2)) *
+            deltaT;
+        rot_ = rot_ *
+               (Eigen::Matrix3d::Identity() + (std::sin(sigma) / sigma) * B -
+                ((1 - std::cos(sigma)) / std::pow(sigma, 2)) * B * B);
+        Eigen::Vector3d acc_l(imu.acc[0], imu.acc[1], imu.acc[2]);
+        Eigen::Vector3d acc_g = rot_ * acc_l;
+        v_ = v_ + deltaT * (acc_g - rot_ * gravity_);
+        pos_ = pos_ + deltaT * v_;
+    }
+
+    IMUProcessor::IMUProcessor(std::shared_ptr<IG_LIO::IESKF> kf, std::shared_ptr<IG_LIO::PiontIMU> pointIMU)
+        : kf_(kf), pointIMU_(pointIMU), init_count_(0), last_lidar_time_end_(0.0),
           mean_acc_(Eigen::Vector3d::Zero()), mean_gyro_(Eigen::Vector3d::Zero()),
           last_acc_(Eigen::Vector3d::Zero()), last_gyro_(Eigen::Vector3d::Zero()),
           rot_ext_(Eigen::Matrix3d::Identity()), pos_ext_(Eigen::Vector3d::Zero())
@@ -51,10 +73,19 @@ namespace IG_LIO
             return;
         init_flag_ = true;
 
+        pointIMU_->setGravity(mean_acc_);
+        pointIMU_->setlastIMUT(meas.imus.back().timestamp);
+        Eigen::Vector3d zero(0, 0, 0);
+        pointIMU_->setPos(zero);
+        pointIMU_->setRot(Eigen::Matrix3d::Identity());
+        pointIMU_->setV(zero);
+        pointIMU_->setW(zero);
+
         IG_LIO::State state = kf_->x();
         state.rot_ext = rot_ext_;
         state.pos_ext = pos_ext_;
         state.bg = mean_gyro_;
+
         if (align_gravity_ && !set_initpose_)
         {
             Eigen::Matrix3d RotationMatrix = (Eigen::Quaterniond::FromTwoVectors((-mean_acc_).normalized(), Eigen::Vector3d(0.0, 0.0, -1.0)).matrix());
@@ -74,6 +105,9 @@ namespace IG_LIO
         {
             state.initG(-mean_acc_);
         }
+
+        pointIMU_->setRot(state.rot);
+
         kf_->change_x(state);
         IG_LIO::Matrix23d init_P = kf_->P();
         init_P.setIdentity();

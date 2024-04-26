@@ -36,8 +36,9 @@ map_builder_node:
     lio_slam:
       ext_r: [3.14159265358979323846, 0., 0.] # base_link外参旋转部分
       ext_t: [-0.0151, 0., 0.] # base_link外参平移部分
+      imu_compensation: True # 使用IMU进行里程计补偿以获得更高位姿发布频率
 
-#----------------重定位和回环检测请勿同时启用----------------#
+    #----------------重定位和回环检测请勿同时启用----------------#
     loop_closure:
       activate: True # 启用回环检测
       rad_thresh: 0.2 # 角度阈值
@@ -65,6 +66,8 @@ map_builder_node:
 occupancy_grid_converter:
   ros__parameters:
     use_sim_time: False
+    map_frame: map # 世界坐标系frameid
+    local_frame: local # 本地坐标系frameid
     robot_frame: base_link # 机器人frameid (tf2)
     grid_map_cloud_size: 10 # 障碍检测积分点云数量
     occupancyGriddataMin: 0.65

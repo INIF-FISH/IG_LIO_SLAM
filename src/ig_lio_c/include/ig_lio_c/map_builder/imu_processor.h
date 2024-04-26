@@ -1,6 +1,7 @@
 #ifndef _IMU_PROCESSOR_H
 #define _IMU_PROCESSOR_H
 
+#include <mutex>
 #include <memory>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -10,6 +11,88 @@
 
 namespace IG_LIO
 {
+    struct PiontIMU
+    {
+    private:
+        std::mutex mutex_;
+        Eigen::Vector3d pos_;     // 位置
+        Eigen::Matrix3d rot_;     // 姿态 旋转矩阵表示
+        Eigen::Vector3d w_;       // 角速度
+        Eigen::Vector3d v_;       // 线速度
+        Eigen::Vector3d gravity_; // 重力加速度
+
+        double lastIMUT_ = 0.; // 上一帧的时间
+
+    public:
+        void setlastIMUT(double lastIMUT)
+        {
+            std::lock_guard<std::mutex> lck(mutex_);
+            lastIMUT_ = lastIMUT;
+        }
+
+        void setPos(Eigen::Vector3d pos)
+        {
+            std::lock_guard<std::mutex> lck(mutex_);
+            pos_ = pos;
+        };
+
+        void setRot(Eigen::Matrix3d rot)
+        {
+            std::lock_guard<std::mutex> lck(mutex_);
+            rot_ = rot;
+        };
+
+        void setW(Eigen::Vector3d w)
+        {
+            std::lock_guard<std::mutex> lck(mutex_);
+            w_ = w;
+        };
+
+        void setV(Eigen::Vector3d v)
+        {
+            std::lock_guard<std::mutex> lck(mutex_);
+            v_ = v;
+        };
+
+        void setGravity(Eigen::Vector3d gravity)
+        {
+            std::lock_guard<std::mutex> lck(mutex_);
+            gravity_ = gravity;
+        }
+
+        Eigen::Vector3d getPos()
+        {
+            std::lock_guard<std::mutex> lck(mutex_);
+            return pos_;
+        }
+
+        Eigen::Matrix3d getRot()
+        {
+            std::lock_guard<std::mutex> lck(mutex_);
+            return rot_;
+        }
+
+        Eigen::Vector3d getW()
+        {
+            std::lock_guard<std::mutex> lck(mutex_);
+            return w_;
+        };
+
+        Eigen::Vector3d getV(Eigen::Vector3d v_)
+        {
+            std::lock_guard<std::mutex> lck(mutex_);
+            return v_;
+        };
+
+        double getLastIMUT()
+        {
+            std::lock_guard<std::mutex> lck(mutex_);
+            return lastIMUT_;
+        }
+
+        void update(IG_LIO::IMU &imu);
+    };
+
     struct Pose
     {
     public:
@@ -28,7 +111,7 @@ namespace IG_LIO
     class IMUProcessor
     {
     public:
-        IMUProcessor(std::shared_ptr<IG_LIO::IESKF> kf);
+        IMUProcessor(std::shared_ptr<IG_LIO::IESKF> kf, std::shared_ptr<IG_LIO::PiontIMU> pointIMU);
 
         void init(const MeasureGroup &meas);
 
@@ -69,8 +152,9 @@ namespace IG_LIO
         Eigen::Vector3d pos_ext_;
         std::vector<double> ext_r_;
         std::shared_ptr<IG_LIO::IESKF> kf_;
+        std::shared_ptr<IG_LIO::PiontIMU> pointIMU_;
 
-        IMU last_imu_;
+        IG_LIO::IMU last_imu_;
         bool init_flag_ = false;
         bool align_gravity_ = true;
         bool set_initpose_ = true;

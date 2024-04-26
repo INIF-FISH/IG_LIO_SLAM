@@ -22,12 +22,13 @@ namespace IG_LIO
 
     IGLIOBuilder::IGLIOBuilder(IGLIOParams &params) : params_(params)
     {
+        pointIMU_ = std::make_shared<IG_LIO::PiontIMU>();
         kf_ = std::make_shared<IG_LIO::IESKF>(params_.esikf_max_iteration);
         kf_->set_share_function(
             [this](IG_LIO::State &s, IG_LIO::SharedState &d)
             { sharedUpdateFunc(s, d); });
 
-        imu_processor_ = std::make_shared<IMUProcessor>(kf_);
+        imu_processor_ = std::make_shared<IMUProcessor>(kf_, pointIMU_);
         imu_processor_->setCov(params.imu_gyro_cov, params.imu_acc_cov, params.imu_gyro_bias_cov, params.imu_acc_bias_cov);
         Eigen::Matrix3d rot_ext;
         Eigen::Vector3d pos_ext;
@@ -64,6 +65,8 @@ namespace IG_LIO
             key_rot_ = kf_->x().rot;
             key_pos_ = kf_->x().pos;
             status = Status::MAPPING;
+            last_pos = kf_->x().pos;
+            last_lidar_time = meas.lidar_time_end;
             return;
         }
         fast_voxel_map_->filter(cloud_lidar_, point_array_lidar_);
@@ -78,6 +81,9 @@ namespace IG_LIO
             key_pos_ = kf_->x().pos;
             return;
         }
+        pointIMU_->setRot(kf_->x().rot);
+        pointIMU_->setPos(kf_->x().pos);
+        pointIMU_->setV((kf_->x().pos - last_pos) / (meas.lidar_time_end - last_lidar_time));
 
         if (cloud_lidar_->size() < 1000 || Sophus::SO3d(kf_->x().rot.transpose() * key_rot_).log().norm() > 0.18 || (kf_->x().pos - key_pos_).norm() > 0.5)
         {
@@ -87,6 +93,8 @@ namespace IG_LIO
             key_rot_ = kf_->x().rot;
             key_pos_ = kf_->x().pos;
         }
+        last_lidar_time = meas.lidar_time_end;
+        last_pos = kf_->x().pos;
     }
 
     void IGLIOBuilder::sharedUpdateFunc(IG_LIO::State &state, IG_LIO::SharedState &shared_state)
@@ -258,9 +266,16 @@ namespace IG_LIO
         return transformToWorld(cloud_lidar_);
     }
 
+    void IGLIOBuilder::calcIMUCompensation(IG_LIO::IMU imu)
+    {
+        if (status == Status::MAPPING)
+            pointIMU_->update(imu);
+    }
+
     void IGLIOBuilder::reset()
     {
         status = Status::INITIALIZE;
+        last_lidar_time = 0.;
         imu_processor_->reset();
         IG_LIO::State state = kf_->x();
         state.rot.setIdentity();

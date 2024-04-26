@@ -115,8 +115,10 @@ namespace IG_LIO
         std::vector<double> pre_ext_t = {-0.0151, 0., 0.};
         this->declare_parameter<std::vector<double>>("lio_slam.ext_r", pre_ext_r);
         this->declare_parameter<std::vector<double>>("lio_slam.ext_t", pre_ext_t);
+        this->declare_parameter<bool>("lio_slam.imu_compensation", false);
         this->get_parameter("lio_slam.ext_r", lio_params_.ext_r);
         this->get_parameter("lio_slam.ext_t", lio_params_.ext_t);
+        this->get_parameter("lio_slam.imu_compensation", lio_params_.imu_compensation_);
         this->declare_parameter<bool>("loop_closure.activate", false);
         this->declare_parameter<double>("loop_closure.rad_thresh", 0.4);
         this->declare_parameter<double>("loop_closure.dist_thresh", 2.5);
@@ -162,7 +164,7 @@ namespace IG_LIO
 
     void MapBuilderNode::initSubscribers()
     {
-        imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(imu_data_.topic, rclcpp::QoS(400).reliable().keep_last(1), std::bind(&ImuData::callback, &imu_data_, _1));
+        imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(imu_data_.topic, rclcpp::QoS(400).reliable().keep_last(1), std::bind(&MapBuilderNode::imuCallbackGroup, this, _1));
         livox_sub_ = this->create_subscription<livox_ros_driver2::msg::CustomMsg>(livox_data_.topic, rclcpp::QoS(20).reliable().keep_last(1), std::bind(&LivoxData::callback, &livox_data_, _1));
     }
 
@@ -171,7 +173,7 @@ namespace IG_LIO
         local_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("local_cloud", rclcpp::QoS(10).transient_local().keep_last(1));
         body_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud", rclcpp::QoS(10).transient_local().keep_last(1));
         map_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("map_cloud", rclcpp::QoS(10).transient_local().keep_last(1));
-        odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("slam_odom", rclcpp::QoS(10).transient_local().keep_last(1));
+        odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("slam_odom", rclcpp::QoS(200).transient_local().keep_last(1));
         loop_mark_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("loop_mark", rclcpp::QoS(10).transient_local().keep_last(1));
         local_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("local_path", rclcpp::QoS(10).transient_local().keep_last(1));
         global_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("global_path", rclcpp::QoS(10).transient_local().keep_last(1));
@@ -256,8 +258,19 @@ namespace IG_LIO
                 localizer_reloc_on_init = false;
             }
         }
-        if (!measure_group_.syncPackage(imu_data_, livox_data_))
+        if (!measure_group_.syncPackage(imu_data_, livox_data_) && lio_params_.imu_compensation_ && lio_builder_->currentStatus() == IG_LIO::Status::MAPPING)
+        {
+            std::shared_ptr<IG_LIO::PiontIMU> pointIMU = lio_builder_->getPointIMU();
+            Eigen::Matrix3d rot_with_imu = pointIMU->getRot();
+            Eigen::Vector3d pos_with_imu = pointIMU->getPos();
+            double imu_time = pointIMU->getLastIMUT();
+            publishOdom(eigen2Odometry(rot_with_imu,
+                                       pos_with_imu,
+                                       local_frame_,
+                                       body_frame_,
+                                       imu_time));
             return;
+        }
         if (shared_data_->halt_flag)
             return;
         if (shared_data_->reset_flag)
@@ -536,6 +549,15 @@ namespace IG_LIO
         marker_array.markers.push_back(nodes_marker);
         marker_array.markers.push_back(edges_marker);
         loop_mark_pub_->publish(std::move(marker_array));
+    }
+
+    void MapBuilderNode::imuCallbackGroup(const sensor_msgs::msg::Imu::SharedPtr msg)
+    {
+        imu_data_.callback(msg);
+        if (lio_params_.imu_compensation_)
+        {
+            lio_builder_->calcIMUCompensation(imu_data_.buffer.back());
+        }
     }
 
     void MapBuilderNode::saveMapCallBack(const ig_lio_c_msgs::srv::SaveMap::Request::SharedPtr request,

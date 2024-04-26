@@ -551,6 +551,7 @@ namespace IG_LIO
         void publishLocalPath();
         void publishGlobalPath();
         void publishLoopMark();
+        void imuCallbackGroup(const sensor_msgs::msg::Imu::SharedPtr msg);
         void saveMapCallBack(const ig_lio_c_msgs::srv::SaveMap::Request::SharedPtr request,
                              const ig_lio_c_msgs::srv::SaveMap::Response::SharedPtr response);
         void relocCallback(const ig_lio_c_msgs::srv::ReLoc::Request::SharedPtr request,

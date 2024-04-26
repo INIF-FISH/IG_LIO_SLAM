@@ -20,6 +20,7 @@ namespace IG_LIO
         Eigen::Matrix3d covB;
         GICPCorrespond(const Eigen::Vector3d &a, const Eigen::Vector3d &b, const Eigen::Matrix3d &ca, const Eigen::Matrix3d &cb) : meanA(a), meanB(b), covA(ca), covB(cb) {}
     };
+
     struct FASTLIOCorrspond
     {
     public:
@@ -27,6 +28,7 @@ namespace IG_LIO
         Eigen::Vector3d point;
         Eigen::Vector4d plane;
     };
+
     inline void CauchyLossFunction(const double e, const double delta, Eigen::Vector3d &rho);
     struct IGLIOParams
     {
@@ -54,7 +56,9 @@ namespace IG_LIO
         bool extrinsic_est_en = false;
         bool align_gravity = true;
         bool set_initpose = true;
+        bool imu_compensation_ = false;
     };
+
     class IGLIOBuilder
     {
     public:
@@ -80,6 +84,10 @@ namespace IG_LIO
 
         PointCloudXYZI::Ptr cloudWorld();
 
+        void calcIMUCompensation(IG_LIO::IMU imu);
+
+        std::shared_ptr<IG_LIO::PiontIMU> getPointIMU() { return pointIMU_; }
+
         void reset();
 
     private:
@@ -87,6 +95,7 @@ namespace IG_LIO
         Status status = Status::INITIALIZE;
         std::shared_ptr<IMUProcessor> imu_processor_;
         std::shared_ptr<IG_LIO::IESKF> kf_;
+        std::shared_ptr<IG_LIO::PiontIMU> pointIMU_;
         std::shared_ptr<VoxelMap> voxel_map_;
         std::shared_ptr<FastVoxelMap> fast_voxel_map_;
         PointCloudXYZI::Ptr cloud_lidar_;
@@ -96,6 +105,8 @@ namespace IG_LIO
         Eigen::Vector3d key_pos_;
         size_t frame_count_ = 0;
         size_t key_frame_count_ = 0;
+        Eigen::Vector3d last_pos;
+        double last_lidar_time = 0.;
 
         std::vector<PointCov> point_array_lidar_;
 
