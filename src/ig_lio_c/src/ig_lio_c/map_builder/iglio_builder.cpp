@@ -168,7 +168,7 @@ namespace IG_LIO
         }
 
         if (effect_feat_num < 1)
-            std::cout << "FastlioConstraint NO EFFECTIVE POINTS!" << std::endl;
+            RCLCPP_ERROR_STREAM(rclcpp::get_logger("map_builder_node"), RED << "FastlioConstraint NO EFFECTIVE POINTS!" << RESET);
     }
 
     void IGLIOBuilder::gicpConstraint(IG_LIO::State &state, IG_LIO::SharedState &shared_state)
@@ -226,7 +226,7 @@ namespace IG_LIO
         }
 
         if (gicp_cache_.size() < 1)
-            std::cout << "GicpConstraint NO EFFECTIVE POINTS!" << std::endl;
+            RCLCPP_ERROR_STREAM(rclcpp::get_logger("map_builder_node"), RED << "GicpConstraint NO EFFECTIVE POINTS!" << RESET);
     }
 
     PointCloudXYZI::Ptr IGLIOBuilder::transformToWorld(const PointCloudXYZI::Ptr cloud)

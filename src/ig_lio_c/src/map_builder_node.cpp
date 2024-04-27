@@ -266,6 +266,11 @@ namespace IG_LIO
                 Eigen::Matrix3d rot_with_imu = pointIMU->getRot();
                 Eigen::Vector3d pos_with_imu = pointIMU->getPos();
                 double imu_time = pointIMU->getLastIMUT();
+                br_->sendTransform(std::move(eigen2Transform(rot_with_imu,
+                                                             pos_with_imu,
+                                                             local_frame_,
+                                                             body_frame_,
+                                                             imu_time)));
                 publishOdom(eigen2Odometry(rot_with_imu,
                                            pos_with_imu,
                                            local_frame_,
@@ -309,16 +314,16 @@ namespace IG_LIO
             RCLCPP_WARN_STREAM(this->get_logger(), YELLOW << "bg_norm too large, jump map process!" << RESET);
             return;
         }
-        br_->sendTransform(eigen2Transform(shared_data_->offset_rot,
-                                           shared_data_->offset_pos,
-                                           global_frame_,
-                                           local_frame_,
-                                           current_time_));
-        br_->sendTransform(eigen2Transform(current_state_.rot,
-                                           current_state_.pos,
-                                           local_frame_,
-                                           body_frame_,
-                                           current_time_));
+        br_->sendTransform(std::move(eigen2Transform(shared_data_->offset_rot,
+                                                     shared_data_->offset_pos,
+                                                     global_frame_,
+                                                     local_frame_,
+                                                     current_time_)));
+        br_->sendTransform(std::move(eigen2Transform(current_state_.rot,
+                                                     current_state_.pos,
+                                                     local_frame_,
+                                                     body_frame_,
+                                                     current_time_)));
 
         publishOdom(eigen2Odometry(current_state_.rot,
                                    current_state_.pos,

@@ -8,7 +8,7 @@ namespace IG_LIO
         double timestamp = double(msg->header.stamp.sec) + double(msg->header.stamp.nanosec) / 1e9;
         if (timestamp < last_timestamp)
         {
-            std::cout << "imu loop back, clear buffer, last_timestamp: " << last_timestamp << "  current_timestamp: " << timestamp << std::endl;
+            RCLCPP_ERROR_STREAM(rclcpp::get_logger("map_builder_node"), RED << "imu loop back, clear buffer, last_timestamp: " << last_timestamp << "  current_timestamp: " << timestamp << RESET);
             buffer.clear();
         }
         last_timestamp = timestamp;
@@ -25,14 +25,14 @@ namespace IG_LIO
     {
         blind_field = blind * blind;
     }
-    
+
     void LivoxData::callback(const livox_ros_driver2::msg::CustomMsg::SharedPtr msg)
     {
         std::lock_guard<std::mutex> lock(mutex);
         double timestamp = double(msg->header.stamp.sec) + double(msg->header.stamp.nanosec) / 1e9;
         if (timestamp < last_timestamp)
         {
-            std::cout << "livox loop back, clear buffer, last_timestamp: " << last_timestamp << "  current_timestamp: " << timestamp << std::endl;
+            RCLCPP_ERROR_STREAM(rclcpp::get_logger("map_builder_node"), RED << "livox loop back, clear buffer, last_timestamp: " << last_timestamp << "  current_timestamp: " << timestamp << RESET);
             buffer.clear();
             time_buffer.clear();
         }

@@ -78,7 +78,7 @@ namespace IG_LIO
         double occupancyGriddataMin = 0.5;
         double occupancyGriddataMax = 10.0;
         double point_min_dist_ = 0.1;
-        double point_max_dist_ = 25.0;
+        double point_max_dist_ = 5.0;
         double min_distance = 0.4;
         double point_min_height = 0.0;
         double point_max_height = 10.0;

@@ -55,11 +55,13 @@ controller_server:
   ros__parameters:
     odom_topic: /odom
     use_sim_time: True
-    controller_frequency: 100.0
+    controller_frequency: 10.0
     controller_plugin_types: ["teb_local_planner::TebLocalPlannerROS"]
     controller_plugins: ["FollowPath"]
     FollowPath:
       plugin: teb_local_planner::TebLocalPlannerROS
+
+      # Trajectory
 
       teb_autosize: 1.0
       dt_ref: 0.3
@@ -76,24 +78,24 @@ controller_server:
 
       # Robot
 
-      max_vel_x: 0.26
-      max_vel_x_backwards: 0.25
-      max_vel_y: 0.26
-      max_vel_theta: 1.0
-      acc_lim_x: 2.5
-      acc_lim_y: 2.5
-      acc_lim_theta: 3.2
+      max_vel_x: 3.0
+      max_vel_x_backwards: 1.5
+      max_vel_y: 3.0
+      max_vel_theta: 6.0
+      acc_lim_x: 3.0
+      acc_lim_y: 3.0
+      acc_lim_theta: 6.0
       min_turning_radius: 0.
-      cmd_angle_instead_rotvel: True
-      overwrite_backward_by_inplace_motion: True
+      cmd_angle_instead_rotvel: False
+      overwrite_backward_by_inplace_motion: False
 
       footprint_model: # types: "point", "circular", "two_circles", "line", "polygon"
         type: "circular"
-        radius: 0.35 # for type "circular"
+        radius: 0.49 # for type "circular"
 
       # GoalTolerance
 
-      xy_goal_tolerance: 0.35
+      xy_goal_tolerance: 0.5
       free_goal_vel: False
 
       # Obstacles
@@ -119,16 +121,16 @@ controller_server:
       optimization_verbose: False
       penalty_epsilon: 0.1
       obstacle_cost_exponent: 4.0
-      weight_max_vel_x: 0.5
-      weight_max_vel_y: 0.5
-      weight_max_vel_theta: 0.5
-      weight_acc_lim_x: 0.5
-      weight_acc_lim_y: 0.5
-      weight_acc_lim_theta: 10.5
+      weight_max_vel_x: 0.3
+      weight_max_vel_y: 0.3
+      weight_max_vel_theta: 0.4
+      weight_acc_lim_x: 0.3
+      weight_acc_lim_y: 0.3
+      weight_acc_lim_theta: 0.4
       weight_kinematics_nh: 1000.0
-      weight_kinematics_forward_drive: 3.0
+      weight_kinematics_forward_drive: 2.0
       weight_kinematics_turning_radius: 0.
-      weight_optimaltime: 1.0 # must be > 0
+      weight_optimaltime: 3.0 # must be > 0
       weight_shortest_path: 0.0
       weight_obstacle: 100.0
       weight_inflation: 0.2
@@ -247,10 +249,10 @@ local_costmap:
       use_sim_time: False
       always_send_full_costmap: True
       rolling_window: true
-      width: 5
-      height: 5
+      width: 10
+      height: 10
       resolution: 0.05
-      robot_radius: 0.32
+      robot_radius: 0.49
       plugins: ["msg_layer", "inflation_layer"]
       msg_layer:
         plugin: "nav2_msg_costmap_plugin/MsgLayer"
@@ -276,7 +278,7 @@ global_costmap:
       global_frame: map
       robot_base_frame: base_link
       use_sim_time: False
-      robot_radius: 0.32
+      robot_radius: 0.49
       resolution: 0.05
       track_unknown_space: true
       plugins: ["static_layer", "msg_layer", "inflation_layer"]
@@ -315,7 +317,7 @@ map_saver:
 
 planner_server:
   ros__parameters:
-    expected_planner_frequency: 100.0
+    expected_planner_frequency: 10.0
     use_sim_time: False
     planner_plugins: ["GridBased"]
     GridBased:

@@ -307,8 +307,7 @@ namespace IG_LIO
 
             if (!icp_->hasConverged() || score > loop_params_.loop_icp_thresh)
                 return;
-
-            std::cout << "Detected LOOP: " << pre_index << " " << cur_index << " " << score << std::endl;
+            RCLCPP_INFO_STREAM(rclcpp::get_logger("map_builder_node"), CYAN << "Detected LOOP: " << MAGENTA << pre_index << " " << cur_index << " " << score << RESET);
             shared_data_->loop_history.emplace_back(pre_index, cur_index);
             loop_found_ = true;
 
