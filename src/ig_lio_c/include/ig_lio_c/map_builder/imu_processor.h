@@ -23,6 +23,8 @@ namespace IG_LIO
 
         double lastIMUT_ = 0.; // 上一帧的时间
 
+        bool imu_pushed = false;
+
     public:
         void setlastIMUT(double lastIMUT)
         {
@@ -91,6 +93,18 @@ namespace IG_LIO
         }
 
         void update(IG_LIO::IMU &imu);
+
+        bool checkImuPushed()
+        {
+            std::lock_guard<std::mutex> lck(mutex_);
+            return imu_pushed;
+        }
+
+        void confirmCost()
+        {
+            std::lock_guard<std::mutex> lck(mutex_);
+            imu_pushed = false;
+        }
     };
 
     struct Pose

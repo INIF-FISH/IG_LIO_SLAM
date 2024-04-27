@@ -22,6 +22,7 @@ namespace IG_LIO
         Eigen::Vector3d acc_g = rot_ * acc_l;
         v_ = v_ + deltaT * (acc_g - rot_ * gravity_);
         pos_ = pos_ + deltaT * v_;
+        imu_pushed = true;
     }
 
     IMUProcessor::IMUProcessor(std::shared_ptr<IG_LIO::IESKF> kf, std::shared_ptr<IG_LIO::PiontIMU> pointIMU)

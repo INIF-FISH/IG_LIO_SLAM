@@ -71,6 +71,8 @@ namespace IG_LIO
             const SaveParameters &save_parameters);
 
     private:
+        std::string map_frame = "map";
+        std::string local_frame = "local";
         std::string robot_frame = "base_link";
         int grid_map_cloud_size = 10;
         double occupancyGriddataMin = 0.5;

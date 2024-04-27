@@ -36,7 +36,7 @@ map_builder_node:
     lio_slam:
       ext_r: [3.14159265358979323846, 0., 0.] # base_link外参旋转部分
       ext_t: [-0.0151, 0., 0.] # base_link外参平移部分
-      imu_compensation: True # 使用IMU进行里程计补偿以获得更高位姿发布频率
+      imu_compensation: True # 使用IMU进行里程计点云帧间补偿以获得更高里程计发布频率
 
     #----------------重定位和回环检测请勿同时启用----------------#
     loop_closure:

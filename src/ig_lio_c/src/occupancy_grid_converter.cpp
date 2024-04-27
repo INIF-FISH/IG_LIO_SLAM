@@ -25,6 +25,8 @@ namespace IG_LIO
 
     void OccupancyGridConverterNode::param_respond()
     {
+        this->declare_parameter<std::string>("map_frame", "map");
+        this->declare_parameter<std::string>("local_frame", "local");
         this->declare_parameter<std::string>("robot_frame", "base_link");
         this->declare_parameter<int>("grid_map_cloud_size", 10);
         this->declare_parameter<double>("occupancyGriddataMin", 0.65);
@@ -34,6 +36,8 @@ namespace IG_LIO
         this->declare_parameter<double>("min_distance", 0.4);
         this->declare_parameter("filter_chain_parameter_name_local", std::string("filters_local"));
         this->declare_parameter("filter_chain_parameter_name_map", std::string("filters_map"));
+        this->get_parameter("map_frame", map_frame);
+        this->get_parameter("local_frame", local_frame);
         this->get_parameter("robot_frame", robot_frame);
         this->get_parameter("grid_map_cloud_size", grid_map_cloud_size);
         this->get_parameter("occupancyGriddataMin", occupancyGriddataMin);
@@ -117,7 +121,7 @@ namespace IG_LIO
         geometry_msgs::msg::TransformStamped tf_map_to_base;
         try
         {
-            tf_map_to_base = tfBuffer_->lookupTransform("map", "base_link", stamp, rclcpp::Duration::from_seconds(0.1));
+            tf_map_to_base = tfBuffer_->lookupTransform(map_frame, robot_frame, stamp, rclcpp::Duration::from_seconds(0.1));
         }
         catch (const tf2::TransformException &ex)
         {
@@ -160,7 +164,7 @@ namespace IG_LIO
         gridMapPclLoader->addLayerFromInputCloud("elevation");
         auto gridMap = gridMapPclLoader->getGridMap();
 
-        gridMap.setFrameId("local");
+        gridMap.setFrameId(local_frame);
         gridMap.setTimestamp(this->get_clock()->now().nanoseconds());
         grid_map::GridMap outputMap;
         if (!filterChain_local_.update(gridMap, outputMap))
@@ -187,7 +191,7 @@ namespace IG_LIO
         gridMapPclLoader->initializeGridMapGeometryFromInputCloud();
         gridMapPclLoader->addLayerFromInputCloud("elevation");
         auto gridMap = gridMapPclLoader->getGridMap();
-        gridMap.setFrameId("map");
+        gridMap.setFrameId(map_frame);
         gridMap.setTimestamp(this->get_clock()->now().nanoseconds());
         grid_map::GridMap outputMap;
         if (!filterChain_map_.update(gridMap, outputMap))
@@ -302,7 +306,7 @@ namespace IG_LIO
         }
         auto gridMap = makeGridMap(cloud_filtered);
         auto occ_grid = createOccupancyGridMsg(gridMap);
-        occ_grid->header.frame_id = "map";
+        occ_grid->header.frame_id = map_frame;
         SaveParameters save_parameters;
         {
             save_parameters.image_format = request->image_format;
