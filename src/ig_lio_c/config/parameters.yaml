@@ -7,6 +7,9 @@ map_builder_node:
     imu_topic: /livox/imu # imu订阅话题
     livox_topic: /livox/lidar # livox点云订阅话题
     dynamic_point_cloud_removal_config: config_fg.yaml # 动态物体过滤配置文件
+    publish_map_cloud: False # 发布重定位地图点云
+    publish_slam_cloud: False # 发布建图点云（消耗性能较大）
+    max_slam_cloud_num: 100 # 建图点云帧数量
     local_rate: 300.0 # 主循环运行频率（需>=IMU发布频率）
     loop_rate_lc: 0.5 # 回环检测频率
     loop_rate_l: 0.25 # 重定位频率
@@ -51,7 +54,7 @@ map_builder_node:
       loop_icp_thresh: 0.3 # icp阈值
 
     localizer:
-      reloc_on_init: False # 启用重定位
+      reloc_on_init: False # 初始化时启用重定位
       pcd_path: "/home/nine-fish/octomapfg_output.pcd" # 重定位使用的点云地图
       xyz_rpy: [0.0, 0.0, 0.0, 3.14159265358979323846, 0.0, 0.0] # 重定位初始位资
       refine_resolution: 0.15

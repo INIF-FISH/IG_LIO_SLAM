@@ -37,8 +37,12 @@ namespace IG_LIO
         this->get_parameter("imu_topic", imu_data_.topic);
         this->get_parameter("livox_topic", livox_data_.topic);
         this->get_parameter("dynamic_point_cloud_removal_config", dynamic_point_cloud_removal_config_);
-        this->declare_parameter("publish_map_cloud", false);
+        this->declare_parameter<bool>("publish_map_cloud", false);
+        this->declare_parameter<bool>("publish_slam_cloud", false);
+        this->declare_parameter<int>("max_slam_cloud_num", 100);
         this->get_parameter("publish_map_cloud", publish_map_cloud_);
+        this->get_parameter("publish_slam_cloud", publish_slam_cloud_);
+        this->get_parameter("max_slam_cloud_num", max_slam_cloud_num_);
         double local_rate, loop_rate_lc, loop_rate_l;
         this->declare_parameter<double>("local_rate", 20.0);
         this->declare_parameter<double>("loop_rate_lc", 1.0);
@@ -173,6 +177,7 @@ namespace IG_LIO
         local_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("local_cloud", rclcpp::QoS(10).transient_local().keep_last(1));
         body_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud", rclcpp::QoS(10).transient_local().keep_last(1));
         map_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("map_cloud", rclcpp::QoS(10).transient_local().keep_last(1));
+        slam_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("slam_cloud", rclcpp::QoS(10).transient_local().keep_last(1));
         odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("odom", rclcpp::QoS(200).transient_local().keep_last(1));
         loop_mark_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("loop_mark", rclcpp::QoS(10).transient_local().keep_last(1));
         local_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("local_path", rclcpp::QoS(10).transient_local().keep_last(1));
@@ -231,9 +236,11 @@ namespace IG_LIO
         offset_rot_ = Eigen::Matrix3d::Identity();
         offset_pos_ = Eigen::Vector3d::Zero();
         {
-            std::lock_guard<std::mutex> lock(shared_data_->mutex);
+            std::lock_guard<std::mutex> lck(shared_data_->mutex);
             shared_data_->offset_rot = Eigen::Matrix3d::Identity();
             shared_data_->offset_pos = Eigen::Vector3d::Zero();
+            shared_data_->offset_rot_loc = Eigen::Matrix3d::Identity();
+            shared_data_->offset_pos_loc = Eigen::Vector3d::Zero();
             shared_data_->localizer_service_success = false;
         }
         lio_builder_->reset();
@@ -286,9 +293,8 @@ namespace IG_LIO
         {
             RCLCPP_WARN(this->get_logger(), "SYSTEM RESET!");
             systemReset();
-            shared_data_->service_mutex.lock();
+            std::lock_guard<std::mutex> lck(shared_data_->service_mutex);
             shared_data_->reset_flag = false;
-            shared_data_->service_mutex.unlock();
         }
         lio_builder_->mapping(measure_group_);
         if (lio_builder_->currentStatus() == IG_LIO::Status::INITIALIZE)
@@ -300,13 +306,34 @@ namespace IG_LIO
                                                        << " bg: " << current_state_.bg.transpose() * 180.0 / M_PI
                                                        << " bg_norm: " << current_state_.bg.norm() * 180.0 / M_PI << RESET);
         current_cloud_body_ = lio_builder_->cloudUndistortedBody();
+        if (publish_slam_cloud_)
         {
-            std::lock_guard<std::mutex> lock(shared_data_->mutex);
+            IG_LIO::PointCloudXYZI::Ptr slam_cloud_(new IG_LIO::PointCloudXYZI);
+            {
+                std::lock_guard<std::mutex> lck(shared_data_->mutex);
+                size_t size = shared_data_->key_poses.size();
+                for (size_t i = 1; i < max_slam_cloud_num_ && i < size; ++i)
+                {
+                    Pose6D &p = shared_data_->key_poses[size - i];
+                    IG_LIO::PointCloudXYZI::Ptr temp_cloud(new IG_LIO::PointCloudXYZI);
+                    pcl::transformPointCloud(*shared_data_->cloud_history[p.index],
+                                             *temp_cloud,
+                                             p.global_pos,
+                                             Eigen::Quaterniond(p.global_rot));
+                    *slam_cloud_ += *temp_cloud;
+                }
+            }
+            publishSlamCloud(pcl2msg(slam_cloud_,
+                                     global_frame_,
+                                     current_time_));
+        }
+        {
+            std::lock_guard<std::mutex> lck(shared_data_->mutex);
             shared_data_->local_rot = current_state_.rot;
             shared_data_->local_pos = current_state_.pos;
             shared_data_->cloud = current_cloud_body_;
-            offset_rot_ = shared_data_->offset_rot;
-            offset_pos_ = shared_data_->offset_pos;
+            offset_rot_ = shared_data_->offset_rot_loc * shared_data_->offset_rot;
+            offset_pos_ = shared_data_->offset_pos_loc + shared_data_->offset_rot_loc * shared_data_->offset_pos;
             shared_data_->pose_updated = true;
         }
         if (current_state_.bg.norm() * 180.0 / M_PI > 1.0)
@@ -314,8 +341,8 @@ namespace IG_LIO
             RCLCPP_WARN_STREAM(this->get_logger(), YELLOW << "bg_norm too large, jump map process!" << RESET);
             return;
         }
-        br_->sendTransform(std::move(eigen2Transform(shared_data_->offset_rot,
-                                                     shared_data_->offset_pos,
+        br_->sendTransform(std::move(eigen2Transform(offset_rot_,
+                                                     offset_pos_,
                                                      global_frame_,
                                                      local_frame_,
                                                      current_time_)));
@@ -333,7 +360,7 @@ namespace IG_LIO
 
         addKeyPose();
 
-        publishBodyCloud(pcl2msg(lio_builder_->cloudUndistortedBody(),
+        publishBodyCloud(pcl2msg(current_cloud_body_,
                                  body_frame_,
                                  current_time_));
         publishLocalCloud(pcl2msg(lio_builder_->cloudWorld(),
@@ -366,7 +393,7 @@ namespace IG_LIO
         int idx = shared_data_->key_poses.size();
         if (shared_data_->key_poses.empty())
         {
-            std::lock_guard<std::mutex> lock(shared_data_->mutex);
+            std::lock_guard<std::mutex> lck(shared_data_->mutex);
             shared_data_->key_poses.emplace_back(idx, current_time_, current_state_.rot, current_state_.pos);
             shared_data_->key_poses.back().addOffset(shared_data_->offset_rot, shared_data_->offset_pos);
             shared_data_->key_pose_added = true;
@@ -382,7 +409,7 @@ namespace IG_LIO
             std::abs(rpy(1)) > loop_closure_.mutableParams().rad_thresh ||
             std::abs(rpy(2)) > loop_closure_.mutableParams().rad_thresh)
         {
-            std::lock_guard<std::mutex> lock(shared_data_->mutex);
+            std::lock_guard<std::mutex> lck(shared_data_->mutex);
             shared_data_->key_poses.emplace_back(idx, current_time_, current_state_.rot, current_state_.pos);
             shared_data_->key_poses.back().addOffset(shared_data_->offset_rot, shared_data_->offset_pos);
             shared_data_->key_pose_added = true;
@@ -408,6 +435,12 @@ namespace IG_LIO
     {
         if (local_cloud_pub_->get_subscription_count() != 0)
             local_cloud_pub_->publish(std::move(cloud_to_pub));
+    }
+
+    void MapBuilderNode::publishSlamCloud(const sensor_msgs::msg::PointCloud2 &cloud_to_pub)
+    {
+        if (slam_cloud_pub_->get_subscription_count() != 0)
+            slam_cloud_pub_->publish(std::move(cloud_to_pub));
     }
 
     void MapBuilderNode::publishBaseLink()
@@ -663,7 +696,7 @@ namespace IG_LIO
         Eigen::AngleAxisf yawAngle(yaw, Eigen::Vector3f::UnitZ());
         Eigen::Quaternionf q = rollAngle * pitchAngle * yawAngle;
         {
-            std::lock_guard<std::mutex> lock(shared_data_->service_mutex);
+            std::lock_guard<std::mutex> lck(shared_data_->service_mutex);
             shared_data_->halt_flag = false;
             shared_data_->localizer_service_called = true;
             shared_data_->localizer_activate = true;
