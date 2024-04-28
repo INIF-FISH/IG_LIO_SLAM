@@ -390,7 +390,7 @@ namespace IG_LIO
             int current_size;
             {
                 std::lock_guard<std::mutex> lck(shared_data_->mutex);
-                int current_size = shared_data_->key_poses.size();
+                current_size = shared_data_->key_poses.size();
                 shared_data_->offset_rot = offset_rot;
                 shared_data_->offset_pos = offset_pos;
             }
