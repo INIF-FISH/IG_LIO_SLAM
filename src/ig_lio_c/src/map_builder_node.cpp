@@ -291,7 +291,7 @@ namespace IG_LIO
             return;
         if (shared_data_->reset_flag)
         {
-            RCLCPP_WARN(this->get_logger(), "SYSTEM RESET!");
+            RCLCPP_WARN_STREAM(this->get_logger(), YELLOW << "SYSTEM RESET!" << RESET);
             systemReset();
             std::lock_guard<std::mutex> lck(shared_data_->service_mutex);
             shared_data_->reset_flag = false;
