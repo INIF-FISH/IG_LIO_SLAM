@@ -43,16 +43,18 @@ namespace IG_LIO
         this->get_parameter("publish_map_cloud", publish_map_cloud_);
         this->get_parameter("publish_slam_cloud", publish_slam_cloud_);
         this->get_parameter("max_slam_cloud_num", max_slam_cloud_num_);
-        double local_rate, loop_rate_lc, loop_rate_l;
-        this->declare_parameter<double>("local_rate", 20.0);
-        this->declare_parameter<double>("loop_rate_lc", 1.0);
-        this->declare_parameter<double>("loop_rate_l", 1.0);
-        this->get_parameter("local_rate", local_rate);
-        this->get_parameter("loop_rate_lc", loop_rate_lc);
-        this->get_parameter("loop_rate_l", loop_rate_l);
-        local_rate_ = std::make_shared<rclcpp::Rate>(local_rate);
-        loop_rate_lc_ = std::make_shared<rclcpp::Rate>(loop_rate_lc);
-        loop_rate_l_ = std::make_shared<rclcpp::Rate>(loop_rate_l);
+        {
+            double local_rate, loop_rate_lc, loop_rate_l;
+            this->declare_parameter<double>("local_rate", 20.0);
+            this->declare_parameter<double>("loop_rate_lc", 1.0);
+            this->declare_parameter<double>("loop_rate_l", 1.0);
+            this->get_parameter("local_rate", local_rate);
+            this->get_parameter("loop_rate_lc", loop_rate_lc);
+            this->get_parameter("loop_rate_l", loop_rate_l);
+            local_rate_ = std::make_shared<rclcpp::Rate>(local_rate);
+            loop_rate_lc_ = std::make_shared<rclcpp::Rate>(loop_rate_lc);
+            loop_rate_l_ = std::make_shared<rclcpp::Rate>(loop_rate_l);
+        }
         this->declare_parameter<double>("blind", 0.5);
         this->declare_parameter<double>("height_offset", 0.7);
         this->get_parameter("blind", livox_data_.blind);
@@ -66,62 +68,70 @@ namespace IG_LIO
         this->get_parameter("lio_builder.map_resolution", lio_params_.map_resolution);
         this->get_parameter("lio_builder.point2plane_gain", lio_params_.point2plane_gain);
         this->get_parameter("lio_builder.gicp_constraint_gain", lio_params_.gicp_constraint_gain);
-        int map_capacity, grid_capacity;
-        this->declare_parameter<int>("lio_builder.map_capacity", 5000000);
-        this->declare_parameter<int>("lio_builder.grid_capacity", 20);
-        this->get_parameter("lio_builder.map_capacity", map_capacity);
-        this->get_parameter("lio_builder.grid_capacity", grid_capacity);
-        lio_params_.map_capacity = static_cast<size_t>(map_capacity);
-        lio_params_.grid_capacity = static_cast<size_t>(grid_capacity);
+        {
+            int map_capacity, grid_capacity;
+            this->declare_parameter<int>("lio_builder.map_capacity", 5000000);
+            this->declare_parameter<int>("lio_builder.grid_capacity", 20);
+            this->get_parameter("lio_builder.map_capacity", map_capacity);
+            this->get_parameter("lio_builder.grid_capacity", grid_capacity);
+            lio_params_.map_capacity = static_cast<size_t>(map_capacity);
+            lio_params_.grid_capacity = static_cast<size_t>(grid_capacity);
+        }
         this->declare_parameter<bool>("lio_builder.align_gravity", true);
         this->declare_parameter<bool>("lio_builder.set_initpose", true);
         this->declare_parameter<bool>("lio_builder.extrinsic_est_en", false);
-        std::vector<double> pre_rot = {1, 0, 0, 0, 1, 0, 0, 0, 1};
-        std::vector<double> pre_pos = {-0.011, -0.02329, 0.04412};
         this->declare_parameter<double>("lio_builder.acc_cov", 0.1);
         this->declare_parameter<double>("lio_builder.gyr_cov", 0.1);
         this->declare_parameter<double>("lio_builder.ba_cov", 0.00001);
         this->declare_parameter<double>("lio_builder.bg_cov", 0.00001);
-        this->declare_parameter<std::vector<double>>("lio_builder.imu_ext_rot", pre_rot);
-        this->declare_parameter<std::vector<double>>("lio_builder.imu_ext_pos", pre_pos);
+        this->get_parameter("lio_builder.align_gravity", lio_params_.align_gravity);
+        this->get_parameter("lio_builder.set_initpose", lio_params_.set_initpose);
+        this->get_parameter("lio_builder.extrinsic_est_en", lio_params_.extrinsic_est_en);
         this->get_parameter("lio_builder.acc_cov", lio_params_.imu_acc_cov);
         this->get_parameter("lio_builder.gyr_cov", lio_params_.imu_gyro_cov);
         this->get_parameter("lio_builder.ba_cov", lio_params_.imu_acc_bias_cov);
         this->get_parameter("lio_builder.bg_cov", lio_params_.imu_gyro_bias_cov);
-        this->get_parameter("lio_builder.align_gravity", lio_params_.align_gravity);
-        this->get_parameter("lio_builder.set_initpose", lio_params_.set_initpose);
-        this->get_parameter("lio_builder.extrinsic_est_en", lio_params_.extrinsic_est_en);
-        this->get_parameter("lio_builder.imu_ext_rot", lio_params_.imu_ext_rot);
-        this->get_parameter("lio_builder.imu_ext_pos", lio_params_.imu_ext_pos);
-        int mode;
-        this->declare_parameter<int>("lio_builder.near_mode", 2);
-        this->get_parameter("lio_builder.near_mode", mode);
-        switch (mode)
         {
-        case 1:
-            lio_params_.mode = IG_LIO::VoxelMap::MODE::NEARBY_1;
-            break;
-        case 2:
-            lio_params_.mode = IG_LIO::VoxelMap::MODE::NEARBY_7;
-            break;
-        case 3:
-            lio_params_.mode = IG_LIO::VoxelMap::MODE::NEARBY_19;
-            break;
-        case 4:
-            lio_params_.mode = IG_LIO::VoxelMap::MODE::NEARBY_26;
-            break;
-
-        default:
-            lio_params_.mode = IG_LIO::VoxelMap::MODE::NEARBY_1;
-            break;
+            std::vector<double> pre_rot = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+            std::vector<double> pre_pos = {-0.011, -0.02329, 0.04412};
+            this->declare_parameter<std::vector<double>>("lio_builder.imu_ext_rot", pre_rot);
+            this->declare_parameter<std::vector<double>>("lio_builder.imu_ext_pos", pre_pos);
+            this->get_parameter("lio_builder.imu_ext_rot", lio_params_.imu_ext_rot);
+            this->get_parameter("lio_builder.imu_ext_pos", lio_params_.imu_ext_pos);
         }
-        std::vector<double> pre_ext_r = {3.14, 0., 0.};
-        std::vector<double> pre_ext_t = {-0.0151, 0., 0.};
-        this->declare_parameter<std::vector<double>>("lio_slam.ext_r", pre_ext_r);
-        this->declare_parameter<std::vector<double>>("lio_slam.ext_t", pre_ext_t);
+        {
+            int mode;
+            this->declare_parameter<int>("lio_builder.near_mode", 2);
+            this->get_parameter("lio_builder.near_mode", mode);
+            switch (mode)
+            {
+            case 1:
+                lio_params_.mode = IG_LIO::VoxelMap::MODE::NEARBY_1;
+                break;
+            case 2:
+                lio_params_.mode = IG_LIO::VoxelMap::MODE::NEARBY_7;
+                break;
+            case 3:
+                lio_params_.mode = IG_LIO::VoxelMap::MODE::NEARBY_19;
+                break;
+            case 4:
+                lio_params_.mode = IG_LIO::VoxelMap::MODE::NEARBY_26;
+                break;
+
+            default:
+                lio_params_.mode = IG_LIO::VoxelMap::MODE::NEARBY_1;
+                break;
+            }
+        }
+        {
+            std::vector<double> pre_ext_r = {3.14, 0., 0.};
+            std::vector<double> pre_ext_t = {-0.0151, 0., 0.};
+            this->declare_parameter<std::vector<double>>("lio_slam.ext_r", pre_ext_r);
+            this->declare_parameter<std::vector<double>>("lio_slam.ext_t", pre_ext_t);
+            this->get_parameter("lio_slam.ext_r", lio_params_.ext_r);
+            this->get_parameter("lio_slam.ext_t", lio_params_.ext_t);
+        }
         this->declare_parameter<bool>("lio_slam.imu_compensation", false);
-        this->get_parameter("lio_slam.ext_r", lio_params_.ext_r);
-        this->get_parameter("lio_slam.ext_t", lio_params_.ext_t);
         this->get_parameter("lio_slam.imu_compensation", lio_params_.imu_compensation_);
         this->declare_parameter<bool>("loop_closure.activate", false);
         this->declare_parameter<double>("loop_closure.rad_thresh", 0.4);
@@ -159,11 +169,13 @@ namespace IG_LIO
         this->get_parameter("localizer.yaw_resolution", localizer_params_.yaw_resolution);
         this->declare_parameter<bool>("localizer.reloc_on_init", false);
         this->declare_parameter<std::string>("localizer.pcd_path", "");
-        std::vector<double> pre_xyz_rpy = {0., 0., 0., 0., 0., 0.};
-        this->declare_parameter<std::vector<double>>("localizer.xyz_rpy", pre_xyz_rpy);
         this->get_parameter("localizer.reloc_on_init", localizer_reloc_on_init);
         this->get_parameter("localizer.pcd_path", localizer_pcd_path);
-        this->get_parameter("localizer.xyz_rpy", localizer_xyz_rpy);
+        {
+            std::vector<double> pre_xyz_rpy = {0., 0., 0., 0., 0., 0.};
+            this->declare_parameter<std::vector<double>>("localizer.xyz_rpy", pre_xyz_rpy);
+            this->get_parameter("localizer.xyz_rpy", localizer_xyz_rpy);
+        }
     }
 
     void MapBuilderNode::initSubscribers()
@@ -265,7 +277,9 @@ namespace IG_LIO
                 localizer_reloc_on_init = false;
             }
         }
-        if (!measure_group_.syncPackage(imu_data_, livox_data_) && lio_params_.imu_compensation_ && lio_builder_->currentStatus() == IG_LIO::Status::MAPPING)
+        if (!measure_group_.syncPackage(imu_data_, livox_data_) &&
+            lio_params_.imu_compensation_ &&
+            lio_builder_->currentStatus() == IG_LIO::Status::MAPPING)
         {
             std::shared_ptr<IG_LIO::PiontIMU> pointIMU = lio_builder_->getPointIMU();
             if (pointIMU->checkImuPushed())
@@ -308,20 +322,24 @@ namespace IG_LIO
         current_cloud_body_ = lio_builder_->cloudUndistortedBody();
         if (publish_slam_cloud_)
         {
-            IG_LIO::PointCloudXYZI::Ptr slam_cloud_(new IG_LIO::PointCloudXYZI);
+            std::vector<Pose6D> key_poses_copy;
             {
                 std::lock_guard<std::mutex> lck(shared_data_->mutex);
-                size_t size = shared_data_->key_poses.size();
-                for (size_t i = 1; i < max_slam_cloud_num_ && i < size; ++i)
+                key_poses_copy = shared_data_->key_poses;
+            }
+            IG_LIO::PointCloudXYZI::Ptr slam_cloud_(new IG_LIO::PointCloudXYZI);
+            for (size_t i = 0; i < std::min<size_t>(max_slam_cloud_num_, key_poses_copy.size()); ++i)
+            {
+                const Pose6D &p = key_poses_copy[key_poses_copy.size() - i - 1];
+                IG_LIO::PointCloudXYZI::Ptr temp_cloud(new IG_LIO::PointCloudXYZI);
                 {
-                    Pose6D &p = shared_data_->key_poses[size - i];
-                    IG_LIO::PointCloudXYZI::Ptr temp_cloud(new IG_LIO::PointCloudXYZI);
+                    std::lock_guard<std::mutex> lck(shared_data_->mutex);
                     pcl::transformPointCloud(*shared_data_->cloud_history[p.index],
                                              *temp_cloud,
                                              p.global_pos,
                                              Eigen::Quaterniond(p.global_rot));
-                    *slam_cloud_ += *temp_cloud;
                 }
+                *slam_cloud_ += *temp_cloud;
             }
             publishSlamCloud(pcl2msg(slam_cloud_,
                                      global_frame_,
@@ -541,7 +559,6 @@ namespace IG_LIO
             return;
         visualization_msgs::msg::MarkerArray marker_array;
         visualization_msgs::msg::Marker nodes_marker;
-
         nodes_marker.header.frame_id = global_frame_;
         nodes_marker.header.stamp = rclcpp::Time(static_cast<uint64_t>(current_time_ * 1e9));
         nodes_marker.ns = "loop_nodes";
@@ -549,9 +566,9 @@ namespace IG_LIO
         nodes_marker.type = visualization_msgs::msg::Marker::SPHERE_LIST;
         nodes_marker.action = visualization_msgs::msg::Marker::ADD;
         nodes_marker.pose.orientation.w = 1.0;
-        nodes_marker.scale.x = 0.1;
-        nodes_marker.scale.y = 0.1;
-        nodes_marker.scale.z = 0.1;
+        nodes_marker.scale.x = 0.05;
+        nodes_marker.scale.y = 0.05;
+        nodes_marker.scale.z = 0.05;
         nodes_marker.color.r = 1.0;
         nodes_marker.color.g = 0.8;
         nodes_marker.color.b = 0.0;
@@ -566,11 +583,11 @@ namespace IG_LIO
         edges_marker.action = visualization_msgs::msg::Marker::ADD;
         edges_marker.pose.orientation.w = 1.0;
         edges_marker.scale.x = 0.05;
-
         edges_marker.color.r = 0.0;
         edges_marker.color.g = 0.8;
         edges_marker.color.b = 0.0;
         edges_marker.color.a = 1.0;
+
         for (auto &p : shared_data_->loop_history)
         {
             Pose6D &p1 = shared_data_->key_poses[p.first];
@@ -609,29 +626,32 @@ namespace IG_LIO
         int cnt = 1;
         octomap::MapUpdater map_updater(ament_index_cpp::get_package_share_directory("ig_lio_c") + "/config/" + dynamic_point_cloud_removal_config_);
         IG_LIO::PointCloudXYZI::Ptr cloud(new IG_LIO::PointCloudXYZI);
-        for (Pose6D &p : shared_data_->key_poses)
         {
-            map_updater.timing.start(" One Scan Cost  ");
-            IG_LIO::PointCloudXYZI::Ptr temp_cloud(new IG_LIO::PointCloudXYZI);
-            pcl::transformPointCloud(*shared_data_->cloud_history[p.index],
-                                     *temp_cloud,
-                                     p.global_pos,
-                                     Eigen::Quaterniond(p.global_rot));
-            if (cnt > 1 && !map_updater.getCfg().verbose_)
+            std::lock_guard<std::mutex> lck(shared_data_->mutex);
+            for (Pose6D &p : shared_data_->key_poses)
             {
-                std::ostringstream log_msg;
-                log_msg << "( Processing:" << cnt << ")"
-                        << " Time Cost: "
-                        << map_updater.timing.lastSeconds(" One Scan Cost  ") << "s";
-                std::string spaces(10, ' ');
-                log_msg << spaces;
-                RCLCPP_INFO(this->get_logger(), log_msg.str().c_str());
+                map_updater.timing.start(" One Scan Cost  ");
+                IG_LIO::PointCloudXYZI::Ptr temp_cloud(new IG_LIO::PointCloudXYZI);
+                pcl::transformPointCloud(*shared_data_->cloud_history[p.index],
+                                         *temp_cloud,
+                                         p.global_pos,
+                                         Eigen::Quaterniond(p.global_rot));
+                if (cnt > 1 && !map_updater.getCfg().verbose_)
+                {
+                    std::ostringstream log_msg;
+                    log_msg << "( Processing:" << cnt << ")"
+                            << " Time Cost: "
+                            << map_updater.timing.lastSeconds(" One Scan Cost  ") << "s";
+                    std::string spaces(10, ' ');
+                    log_msg << spaces;
+                    RCLCPP_INFO_STREAM(this->get_logger(), CYAN << log_msg.str().c_str() << RESET);
+                }
+                pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz(new pcl::PointCloud<pcl::PointXYZ>());
+                pcl::copyPointCloud(*temp_cloud, *cloud_xyz);
+                map_updater.run(cloud_xyz);
+                map_updater.timing.stop(" One Scan Cost  ");
+                cnt++;
             }
-            pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz(new pcl::PointCloud<pcl::PointXYZ>());
-            pcl::copyPointCloud(*temp_cloud, *cloud_xyz);
-            map_updater.run(cloud_xyz);
-            map_updater.timing.stop(" One Scan Cost  ");
-            cnt++;
         }
         map_updater.timing.start("4. Query & Write");
         std::string output_file;
@@ -646,7 +666,7 @@ namespace IG_LIO
         {
             response->status = false;
             response->message = "Empty cloud!";
-            RCLCPP_WARN(this->get_logger(), "Failed to save map !");
+            RCLCPP_ERROR_STREAM(this->get_logger(), RED << "Failed to save map !" << RESET);
         }
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_SOR_filtered(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
@@ -678,7 +698,7 @@ namespace IG_LIO
         }
         response->status = 1;
         response->message = "Success to save map !";
-        RCLCPP_INFO(this->get_logger(), "Success to save map !");
+        RCLCPP_INFO_STREAM(this->get_logger(), GREEN << "Success to save map !" << RESET);
     }
 
     void MapBuilderNode::relocCallback(const ig_lio_c_msgs::srv::ReLoc::Request::SharedPtr request,
