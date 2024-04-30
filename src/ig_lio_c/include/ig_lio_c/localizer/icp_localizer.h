@@ -25,12 +25,19 @@ namespace IG_LIO
 
     class IcpLocalizer
     {
+    private:
+        double refine_resolution_;
+        double rough_resolution_;
+        int refine_iter_;
+        int rough_iter_;
+        double thresh_;
+
     public:
         IcpLocalizer()
             : refine_resolution_(0.2),
               rough_resolution_(0.5),
-              rough_iter_(10),
               refine_iter_(5),
+              rough_iter_(10),
               thresh_(0.15)
         {
             voxel_rough_filter_.setLeafSize(rough_resolution_, rough_resolution_, rough_resolution_);
@@ -74,11 +81,6 @@ namespace IG_LIO
         std::string pcd_path_;
         PointCloudXYZI::Ptr refine_map_;
         PointCloudXYZI::Ptr rough_map_;
-        double refine_resolution_;
-        double rough_resolution_;
-        int rough_iter_;
-        int refine_iter_;
-        double thresh_;
         double score_ = 10.0;
         bool success_ = false;
         bool initialized_ = false;

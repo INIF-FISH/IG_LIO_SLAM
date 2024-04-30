@@ -48,12 +48,12 @@ namespace IG_LIO
 
     struct LoopPair
     {
-        LoopPair(int p, int c, float s, Eigen::Matrix3d &dr, Eigen::Vector3d &dp) : pre_idx(p), cur_idx(c), score(s), diff_rot(dr), diff_pos(dp) {}
         int pre_idx;
         int cur_idx;
+        double score;
         Eigen::Matrix3d diff_rot;
         Eigen::Vector3d diff_pos;
-        double score;
+        LoopPair(int p, int c, float s, Eigen::Matrix3d &dr, Eigen::Vector3d &dp) : pre_idx(p), cur_idx(c), score(s), diff_rot(dr), diff_pos(dp) {}
     };
 
     struct Pose6D
@@ -512,13 +512,21 @@ namespace IG_LIO
 
     private:
         bool is_alive = true;
+
         bool terminate_flag = false;
+
         std::shared_ptr<SharedData> shared_data_;
+
         std::shared_ptr<IG_LIO::IcpLocalizer> icp_localizer_;
+
         std::shared_ptr<rclcpp::Rate> rate_;
+
         pcl::PointCloud<pcl::PointXYZI>::Ptr current_cloud_;
+
         Eigen::Matrix4d global_pose_;
+
         Eigen::Matrix3d local_rot_;
+
         Eigen::Vector3d local_pos_;
     };
 
@@ -565,10 +573,12 @@ namespace IG_LIO
         std::string local_frame_;
         std::string body_frame_;
         std::string dynamic_point_cloud_removal_config_;
+
         double current_time_;
         bool publish_map_cloud_, publish_slam_cloud_;
         int max_slam_cloud_num_ = 100;
         bool localizer_reloc_on_init;
+
         std::shared_future<std::shared_ptr<ig_lio_c_msgs::srv::ReLoc_Response>> localizer_response;
         std::string localizer_pcd_path;
         std::vector<double> localizer_xyz_rpy = {0., 0., 0., 0., 0., 0.};
@@ -578,12 +588,15 @@ namespace IG_LIO
         MeasureGroup measure_group_;
         IG_LIO::IGLIOParams lio_params_;
         IG_LIO::LocalizerParams localizer_params_;
+
         std::shared_ptr<IG_LIO::IGLIOBuilder> lio_builder_;
         std::shared_ptr<IG_LIO::IcpLocalizer> icp_localizer_;
+
         std::shared_ptr<SharedData> shared_data_;
         std::shared_ptr<rclcpp::Rate> local_rate_;
         std::shared_ptr<rclcpp::Rate> loop_rate_lc_;
         std::shared_ptr<rclcpp::Rate> loop_rate_l_;
+
         LoopClosureThread loop_closure_;
         std::shared_ptr<std::thread> loop_thread_;
         LocalizerThread localizer_loop_;

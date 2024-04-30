@@ -111,15 +111,15 @@ namespace IG_LIO
     {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+        double offset;
         Eigen::Vector3d acc;
         Eigen::Vector3d gyro;
-        Eigen::Matrix3d rot;
-        Eigen::Vector3d pos;
         Eigen::Vector3d vel;
+        Eigen::Vector3d pos;
+        Eigen::Matrix3d rot;
         Pose();
         Pose(double t, Eigen::Vector3d a, Eigen::Vector3d g, Eigen::Vector3d v, Eigen::Vector3d p, Eigen::Matrix3d r)
             : offset(t), acc(a), gyro(g), vel(v), pos(p), rot(r) {}
-        double offset;
     };
 
     class IMUProcessor

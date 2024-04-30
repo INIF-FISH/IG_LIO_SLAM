@@ -227,8 +227,11 @@ namespace IG_LIO
         localizer_loop_.setSharedDate(shared_data_);
         localizer_loop_.setLocalizer(icp_localizer_);
         localizer_thread_ = std::make_shared<std::thread>(std::ref(localizer_loop_));
+
         f = std::bind(&MapBuilderNode::run, this);
+
         publishBaseLink();
+
         if (localizer_reloc_on_init)
         {
             std::shared_ptr<ig_lio_c_msgs::srv::ReLoc_Request> request(new ig_lio_c_msgs::srv::ReLoc_Request);
@@ -269,11 +272,11 @@ namespace IG_LIO
             {
                 std::shared_ptr<ig_lio_c_msgs::srv::ReLoc_Response> response = localizer_response.get();
                 localizer_reloc_on_init = false;
-                RCLCPP_INFO(this->get_logger(), response->message.c_str());
+                RCLCPP_INFO_STREAM(this->get_logger(), CYAN << response->message.c_str() << RESET);
             }
             else if (status == std::future_status::timeout)
             {
-                RCLCPP_WARN(this->get_logger(), "RELOC CALL FAILED !");
+                RCLCPP_WARN_STREAM(this->get_logger(), YELLOW << "RELOC CALL FAILED !" << RESET);
                 localizer_reloc_on_init = false;
             }
         }
@@ -315,31 +318,29 @@ namespace IG_LIO
             return;
         current_time_ = measure_group_.lidar_time_end;
         current_state_ = lio_builder_->currentState();
-        RCLCPP_INFO_STREAM(this->get_logger(), MAGENTA << "ba: " << current_state_.ba.transpose()
+        RCLCPP_INFO_STREAM(this->get_logger(), MAGENTA << " ba: " << current_state_.ba.transpose()
                                                        << " ba_norm: " << current_state_.ba.norm()
                                                        << " bg: " << current_state_.bg.transpose() * 180.0 / M_PI
                                                        << " bg_norm: " << current_state_.bg.norm() * 180.0 / M_PI << RESET);
         current_cloud_body_ = lio_builder_->cloudUndistortedBody();
         if (publish_slam_cloud_)
         {
-            std::vector<Pose6D> key_poses_copy;
+            IG_LIO::PointCloudXYZI::Ptr slam_cloud_(new IG_LIO::PointCloudXYZI);
             {
                 std::lock_guard<std::mutex> lck(shared_data_->mutex);
-                key_poses_copy = shared_data_->key_poses;
-            }
-            IG_LIO::PointCloudXYZI::Ptr slam_cloud_(new IG_LIO::PointCloudXYZI);
-            for (size_t i = 0; i < std::min<size_t>(max_slam_cloud_num_, key_poses_copy.size()); ++i)
-            {
-                const Pose6D &p = key_poses_copy[key_poses_copy.size() - i - 1];
-                IG_LIO::PointCloudXYZI::Ptr temp_cloud(new IG_LIO::PointCloudXYZI);
+                size_t num_poses_to_copy = std::min(max_slam_cloud_num_, int(shared_data_->key_poses.size()));
+                for (size_t i = 0; i < num_poses_to_copy; ++i)
                 {
-                    std::lock_guard<std::mutex> lck(shared_data_->mutex);
+                    const auto &p = shared_data_->key_poses[shared_data_->key_poses.size() - i - 1];
+                    IG_LIO::PointCloudXYZI::Ptr temp_cloud(new IG_LIO::PointCloudXYZI);
+
                     pcl::transformPointCloud(*shared_data_->cloud_history[p.index],
                                              *temp_cloud,
                                              p.global_pos,
                                              Eigen::Quaterniond(p.global_rot));
+
+                    *slam_cloud_ += *temp_cloud;
                 }
-                *slam_cloud_ += *temp_cloud;
             }
             publishSlamCloud(pcl2msg(slam_cloud_,
                                      global_frame_,
