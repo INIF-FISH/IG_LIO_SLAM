@@ -47,12 +47,25 @@ namespace IG_LIO
         this->get_parameter("min_distance", min_distance);
         this->get_parameter("filter_chain_parameter_name_local", filterChainParametersName_local_);
         this->get_parameter("filter_chain_parameter_name_map", filterChainParametersName_map_);
+        RCLCPP_INFO_STREAM(this->get_logger(), CYAN << "map_frame set to " << map_frame << RESET);
+        RCLCPP_INFO_STREAM(this->get_logger(), CYAN << "local_frame set to " << local_frame << RESET);
+        RCLCPP_INFO_STREAM(this->get_logger(), CYAN << "robot_frame set to " << robot_frame << RESET);
+        RCLCPP_INFO_STREAM(this->get_logger(), CYAN << "grid_map_cloud_size set to " << grid_map_cloud_size << RESET);
+        RCLCPP_INFO_STREAM(this->get_logger(), CYAN << "occupancyGriddataMin set to " << occupancyGriddataMin << RESET);
+        RCLCPP_INFO_STREAM(this->get_logger(), CYAN << "occupancyGriddataMax set to " << occupancyGriddataMax << RESET);
+        RCLCPP_INFO_STREAM(this->get_logger(), CYAN << "point_min_height set to " << point_min_height << RESET);
+        RCLCPP_INFO_STREAM(this->get_logger(), CYAN << "point_max_height set to " << point_max_height << RESET);
+        RCLCPP_INFO_STREAM(this->get_logger(), CYAN << "min_distance set to " << min_distance << RESET);
+        RCLCPP_INFO_STREAM(this->get_logger(), CYAN << "filter_chain_parameter_name_local set to " << filterChainParametersName_local_ << RESET);
+        RCLCPP_INFO_STREAM(this->get_logger(), CYAN << "filter_chain_parameter_name_map set to " << filterChainParametersName_map_ << RESET);
     }
 
     void OccupancyGridConverterNode::initSubscribers()
     {
         point_cloud_subscription_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
             "local_cloud", rclcpp::QoS(10).transient_local().keep_last(1), std::bind(&OccupancyGridConverterNode::pointCloudCallback, this, std::placeholders::_1));
+        RCLCPP_INFO_STREAM(this->get_logger(), CYAN << "point cloud data subscribe from "
+                                                    << "local_cloud" << RESET);
     }
 
     void OccupancyGridConverterNode::initPublishers()
@@ -60,6 +73,10 @@ namespace IG_LIO
         local_grid_map_pub_ = this->create_publisher<grid_map_msgs::msg::GridMap>(
             "/local_costmap/grid_map", rclcpp::QoS(10).transient_local().keep_last(1));
         occupancy_grid_pub_map_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", rclcpp::QoS(10).reliable().transient_local().keep_last(1));
+        RCLCPP_INFO_STREAM(this->get_logger(), CYAN << "local grid map publish to "
+                                                    << "/local_costmap/grid_map" << RESET);
+        RCLCPP_INFO_STREAM(this->get_logger(), CYAN << "occupancy grid map publish to "
+                                                    << "map" << RESET);
     }
 
     void OccupancyGridConverterNode::initSerivces()
