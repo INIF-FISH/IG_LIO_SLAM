@@ -74,6 +74,7 @@ void TebConfig::declareParameters(const nav2_util::LifecycleNode::SharedPtr nh, 
   declare_parameter_if_not_declared(nh, name + "." + "max_vel_x", rclcpp::ParameterValue(robot.max_vel_x));
   declare_parameter_if_not_declared(nh, name + "." + "max_vel_x_backwards", rclcpp::ParameterValue(robot.max_vel_x_backwards));
   declare_parameter_if_not_declared(nh, name + "." + "max_vel_y", rclcpp::ParameterValue(robot.max_vel_y));
+  declare_parameter_if_not_declared(nh, name + "." + "max_vel_trans", rclcpp::ParameterValue(robot.max_vel_trans));
   declare_parameter_if_not_declared(nh, name + "." + "max_vel_theta", rclcpp::ParameterValue(robot.max_vel_theta));
   declare_parameter_if_not_declared(nh, name + "." + "acc_lim_x", rclcpp::ParameterValue(robot.acc_lim_x));
   declare_parameter_if_not_declared(nh, name + "." + "acc_lim_y", rclcpp::ParameterValue(robot.acc_lim_y));
@@ -81,6 +82,7 @@ void TebConfig::declareParameters(const nav2_util::LifecycleNode::SharedPtr nh, 
   declare_parameter_if_not_declared(nh, name + "." + "min_turning_radius", rclcpp::ParameterValue(robot.min_turning_radius));
   declare_parameter_if_not_declared(nh, name + "." + "wheelbase", rclcpp::ParameterValue(robot.wheelbase));
   declare_parameter_if_not_declared(nh, name + "." + "cmd_angle_instead_rotvel", rclcpp::ParameterValue(robot.cmd_angle_instead_rotvel));
+  declare_parameter_if_not_declared(nh, name + "." + "overwrite_backward_by_inplace_motion", rclcpp::ParameterValue(robot.overwrite_backward_by_inplace_motion));
   declare_parameter_if_not_declared(nh, name + "." + "is_footprint_dynamic", rclcpp::ParameterValue(robot.is_footprint_dynamic));
 
   // GoalTolerance
@@ -199,6 +201,7 @@ void TebConfig::loadRosParamFromNodeHandle(const nav2_util::LifecycleNode::Share
   nh->get_parameter_or(name + "." + "max_vel_x", robot.max_vel_x, robot.max_vel_x);
   nh->get_parameter_or(name + "." + "max_vel_x_backwards", robot.max_vel_x_backwards, robot.max_vel_x_backwards);
   nh->get_parameter_or(name + "." + "max_vel_y", robot.max_vel_y, robot.max_vel_y);
+  nh->get_parameter_or(name + "." + "max_vel_trans", robot.max_vel_trans, robot.max_vel_trans);
   nh->get_parameter_or(name + "." + "max_vel_theta", robot.max_vel_theta, robot.max_vel_theta);
   nh->get_parameter_or(name + "." + "acc_lim_x", robot.acc_lim_x, robot.acc_lim_x);
   nh->get_parameter_or(name + "." + "acc_lim_y", robot.acc_lim_y, robot.acc_lim_y);
@@ -206,6 +209,7 @@ void TebConfig::loadRosParamFromNodeHandle(const nav2_util::LifecycleNode::Share
   nh->get_parameter_or(name + "." + "min_turning_radius", robot.min_turning_radius, robot.min_turning_radius);
   nh->get_parameter_or(name + "." + "wheelbase", robot.wheelbase, robot.wheelbase);
   nh->get_parameter_or(name + "." + "cmd_angle_instead_rotvel", robot.cmd_angle_instead_rotvel, robot.cmd_angle_instead_rotvel);
+  nh->get_parameter_or(name + "." + "overwrite_backward_by_inplace_motion", robot.overwrite_backward_by_inplace_motion, robot.overwrite_backward_by_inplace_motion);
   nh->get_parameter_or(name + "." + "is_footprint_dynamic", robot.is_footprint_dynamic, robot.is_footprint_dynamic);
   
   // GoalTolerance
@@ -340,6 +344,8 @@ void TebConfig::on_parameter_event_callback(
       } else if (name == node_name + ".max_vel_y") {
         robot.max_vel_y = value.double_value;
         robot.base_max_vel_y = value.double_value;
+      } else if (name == node_name + ".max_vel_trans") {
+        robot.max_vel_trans = value.double_value;
       } else if (name == node_name + ".max_vel_theta") {
         robot.max_vel_theta = value.double_value;
         robot.base_max_vel_theta = value.double_value;
@@ -517,6 +523,8 @@ void TebConfig::on_parameter_event_callback(
       // Robot
       else if (name == node_name + ".cmd_angle_instead_rotvel") {
         robot.cmd_angle_instead_rotvel = value.bool_value;
+      } else if (name == node_name + ".overwrite_backward_by_inplace_motion") {
+        robot.overwrite_backward_by_inplace_motion = value.bool_value;
       } else if (name == node_name + ".is_footprint_dynamic") {
         robot.is_footprint_dynamic = value.bool_value;
       }
@@ -638,6 +646,17 @@ void TebConfig::checkParameters() const
   
   if (optim.weight_optimaltime <= 0)
       RCLCPP_WARN(logger_, "TebLocalPlannerROS() Param Warning: parameter weight_optimaltime shoud be > 0 (even if weight_shortest_path is in use)");
+
+  // holonomic check
+  if (robot.max_vel_y > 0) {
+    if (robot.max_vel_trans < std::min(robot.max_vel_x, robot.max_vel_trans)) {
+      RCLCPP_WARN(logger_, "TebLocalPlannerROS() Param Warning: max_vel_trans < min(max_vel_x, max_vel_y). Note that vel_trans = sqrt(Vx^2 + Vy^2), thus max_vel_trans will limit Vx and Vy in the optimization step.");
+    }
+
+    if (robot.max_vel_trans > std::max(robot.max_vel_x, robot.max_vel_y)) {
+      RCLCPP_WARN(logger_, "TebLocalPlannerROS() Param Warning: max_vel_trans > max(max_vel_x, max_vel_y). Robot will rotate and move diagonally to achieve max resultant vel (possibly max vel on both axis), limited by the max_vel_trans.");
+    }
+  }
 }    
 
 void TebConfig::checkDeprecated(const nav2_util::LifecycleNode::SharedPtr nh, const std::string name) const

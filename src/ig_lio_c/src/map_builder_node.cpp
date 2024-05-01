@@ -25,12 +25,12 @@ namespace IG_LIO
 
     void MapBuilderNode::param_respond()
     {
-        this->declare_parameter<std::string>("map_frame", "map");
-        this->declare_parameter<std::string>("local_frame", "local");
-        this->declare_parameter<std::string>("body_frame", "body");
-        this->declare_parameter<std::string>("imu_topic", "/imu/data");
-        this->declare_parameter<std::string>("livox_topic", "/livox/lidar");
-        this->declare_parameter<std::string>("dynamic_point_cloud_removal_config", "config_fg.yaml");
+        this->declare_parameter<std::string>("map_frame", std::string("map"));
+        this->declare_parameter<std::string>("local_frame", std::string("local"));
+        this->declare_parameter<std::string>("body_frame", std::string("body"));
+        this->declare_parameter<std::string>("imu_topic", std::string("/imu/data"));
+        this->declare_parameter<std::string>("livox_topic", std::string("/livox/lidar"));
+        this->declare_parameter<std::string>("dynamic_point_cloud_removal_config", std::string("config_fg.yaml"));
         this->get_parameter("map_frame", global_frame_);
         this->get_parameter("local_frame", local_frame_);
         this->get_parameter("body_frame", body_frame_);

@@ -25,9 +25,9 @@ namespace IG_LIO
 
     void OccupancyGridConverterNode::param_respond()
     {
-        this->declare_parameter<std::string>("map_frame", "map");
-        this->declare_parameter<std::string>("local_frame", "local");
-        this->declare_parameter<std::string>("robot_frame", "base_link");
+        this->declare_parameter<std::string>("map_frame", std::string("map"));
+        this->declare_parameter<std::string>("local_frame", std::string("local"));
+        this->declare_parameter<std::string>("robot_frame", std::string("base_link"));
         this->declare_parameter<int>("grid_map_cloud_size", 10);
         this->declare_parameter<double>("occupancyGriddataMin", 0.65);
         this->declare_parameter<double>("occupancyGriddataMax", 10.0);

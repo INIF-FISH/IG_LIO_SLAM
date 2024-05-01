@@ -81,6 +81,7 @@ controller_server:
       max_vel_x: 3.0
       max_vel_x_backwards: 1.5
       max_vel_y: 3.0
+      max_vel_trans: 2.5
       max_vel_theta: 6.0
       acc_lim_x: 3.0
       acc_lim_y: 3.0
