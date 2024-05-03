@@ -380,29 +380,33 @@ namespace IG_LIO
                 localizer_reloc_on_init = false;
             }
         }
-        if (!measure_group_.syncPackage(imu_data_, livox_data_) &&
-            lio_params_.imu_compensation_ &&
-            lio_builder_->currentStatus() == IG_LIO::Status::MAPPING)
         {
-            std::shared_ptr<IG_LIO::PiontIMU> pointIMU = lio_builder_->getPointIMU();
-            if (pointIMU->checkImuPushed())
+            bool syncFlag = measure_group_.syncPackage(imu_data_, livox_data_);
+            if (!syncFlag &&
+                lio_params_.imu_compensation_ &&
+                lio_builder_->currentStatus() == IG_LIO::Status::MAPPING)
             {
-                Eigen::Matrix3d rot_with_imu = pointIMU->getRot();
-                Eigen::Vector3d pos_with_imu = pointIMU->getPos();
-                double imu_time = pointIMU->getLastIMUT();
-                br_->sendTransform(std::move(eigen2Transform(rot_with_imu,
-                                                             pos_with_imu,
-                                                             local_frame_,
-                                                             body_frame_,
-                                                             imu_time)));
-                publishOdom(eigen2Odometry(rot_with_imu,
-                                           pos_with_imu,
-                                           local_frame_,
-                                           body_frame_,
-                                           imu_time));
-                pointIMU->confirmCost();
+                std::shared_ptr<IG_LIO::PiontIMU> pointIMU = lio_builder_->getPointIMU();
+                if (pointIMU->checkImuPushed())
+                {
+                    Eigen::Matrix3d rot_with_imu = pointIMU->getRot();
+                    Eigen::Vector3d pos_with_imu = pointIMU->getPos();
+                    double imu_time = pointIMU->getLastIMUT();
+                    br_->sendTransform(std::move(eigen2Transform(rot_with_imu,
+                                                                 pos_with_imu,
+                                                                 local_frame_,
+                                                                 body_frame_,
+                                                                 imu_time)));
+                    publishOdom(eigen2Odometry(rot_with_imu,
+                                               pos_with_imu,
+                                               local_frame_,
+                                               body_frame_,
+                                               imu_time));
+                    pointIMU->confirmCost();
+                }
             }
-            return;
+            if (!syncFlag)
+                return;
         }
         if (shared_data_->halt_flag)
             return;

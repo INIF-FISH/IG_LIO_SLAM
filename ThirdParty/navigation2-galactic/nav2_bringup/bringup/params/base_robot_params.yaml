@@ -55,7 +55,7 @@ controller_server:
   ros__parameters:
     odom_topic: /odom
     use_sim_time: True
-    controller_frequency: 10.0
+    controller_frequency: 25.0
     controller_plugin_types: ["teb_local_planner::TebLocalPlannerROS"]
     controller_plugins: ["FollowPath"]
     FollowPath:
@@ -78,13 +78,13 @@ controller_server:
 
       # Robot
 
-      max_vel_x: 3.0
-      max_vel_x_backwards: 1.5
-      max_vel_y: 3.0
-      max_vel_trans: 2.5
+      max_vel_x: 5.0
+      max_vel_x_backwards: 5.0
+      max_vel_y: 5.0
+      max_vel_trans: 5.0
       max_vel_theta: 6.0
-      acc_lim_x: 3.0
-      acc_lim_y: 3.0
+      acc_lim_x: 5.0
+      acc_lim_y: 5.0
       acc_lim_theta: 6.0
       min_turning_radius: 0.
       cmd_angle_instead_rotvel: False
@@ -92,7 +92,7 @@ controller_server:
 
       footprint_model: # types: "point", "circular", "two_circles", "line", "polygon"
         type: "circular"
-        radius: 0.49 # for type "circular"
+        radius: 0.32 # for type "circular"
 
       # GoalTolerance
 
@@ -253,7 +253,7 @@ local_costmap:
       width: 10
       height: 10
       resolution: 0.05
-      robot_radius: 0.49
+      robot_radius: 0.32
       plugins: ["msg_layer", "inflation_layer"]
       msg_layer:
         plugin: "nav2_msg_costmap_plugin/MsgLayer"
@@ -279,7 +279,7 @@ global_costmap:
       global_frame: map
       robot_base_frame: base_link
       use_sim_time: False
-      robot_radius: 0.49
+      robot_radius: 0.32
       resolution: 0.05
       track_unknown_space: true
       plugins: ["static_layer", "msg_layer", "inflation_layer"]
@@ -318,7 +318,7 @@ map_saver:
 
 planner_server:
   ros__parameters:
-    expected_planner_frequency: 10.0
+    expected_planner_frequency: 25.0
     use_sim_time: False
     planner_plugins: ["GridBased"]
     GridBased:
