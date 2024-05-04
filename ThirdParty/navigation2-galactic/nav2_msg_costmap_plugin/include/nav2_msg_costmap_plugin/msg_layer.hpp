@@ -87,7 +87,7 @@ namespace nav2_msg_costmap_plugin
 
   private:
     double last_min_x_, last_min_y_, last_max_x_, last_max_y_;
-    
+
     // Indicates that the entire gradient should be recalculated next time.
     bool need_recalculation_;
 
@@ -98,10 +98,14 @@ namespace nav2_msg_costmap_plugin
     std::string global_frame_;
     float time_decay_;
     double max_slope = 0.5;
+    std::string robot_base_frame_;
+    bool use_robot_z_ = false;
+    double robot_height_offset_ = 0.5;
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
     std::shared_ptr<grid_map::GridMap> grid_map_;
+    builtin_interfaces::msg::Time last_timestamp;
     tf2::Transform transform_projected_;
     std::mutex map_lock_;
     rclcpp::Subscription<grid_map_msgs::msg::GridMap>::SharedPtr subscriber_;

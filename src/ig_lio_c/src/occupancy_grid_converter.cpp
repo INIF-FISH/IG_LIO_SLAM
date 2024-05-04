@@ -142,7 +142,7 @@ namespace IG_LIO
         }
         catch (const tf2::TransformException &ex)
         {
-            RCLCPP_ERROR(this->get_logger(), "%s", ex.what());
+            RCLCPP_ERROR_STREAM(this->get_logger(), RED << ex.what() << RESET);
             grid_map::GridMap result;
             return result;
         }

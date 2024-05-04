@@ -260,6 +260,9 @@ local_costmap:
         map_topic: "/local_costmap/grid_map"
         global_frame: map
         max_slope: 0.5
+        robot_base_frame: base_link
+        use_robot_z: True
+        robot_height_offset: 0.6
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 2.0
@@ -289,8 +292,11 @@ global_costmap:
       msg_layer:
         plugin: "nav2_msg_costmap_plugin/MsgLayer"
         map_topic: "/local_costmap/grid_map"
+        robot_base_frame: base_link
         global_frame: map
         max_slope: 0.5
+        use_robot_z: False
+        robot_height_offset: 0.6
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 1.5

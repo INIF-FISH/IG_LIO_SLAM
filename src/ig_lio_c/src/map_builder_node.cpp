@@ -380,10 +380,9 @@ namespace IG_LIO
                 localizer_reloc_on_init = false;
             }
         }
+        if (!measure_group_.syncPackage(imu_data_, livox_data_))
         {
-            bool syncFlag = measure_group_.syncPackage(imu_data_, livox_data_);
-            if (!syncFlag &&
-                lio_params_.imu_compensation_ &&
+            if (lio_params_.imu_compensation_ &&
                 lio_builder_->currentStatus() == IG_LIO::Status::MAPPING)
             {
                 std::shared_ptr<IG_LIO::PiontIMU> pointIMU = lio_builder_->getPointIMU();
@@ -405,8 +404,7 @@ namespace IG_LIO
                     pointIMU->confirmCost();
                 }
             }
-            if (!syncFlag)
-                return;
+            return;
         }
         if (shared_data_->halt_flag)
             return;

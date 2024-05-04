@@ -26,11 +26,17 @@ namespace nav2_msg_costmap_plugin
         declareParameter("global_frame", rclcpp::ParameterValue("map"));
         declareParameter("map_time_decay", rclcpp::ParameterValue(0.2));
         declareParameter("max_slope", rclcpp::ParameterValue(0.5));
+        declareParameter("robot_base_frame", rclcpp::ParameterValue("base_link"));
+        declareParameter("use_height_offset", rclcpp::ParameterValue(false));
+        declareParameter("robot_height_offset", rclcpp::ParameterValue(0.5));
         grid_map_ = std::make_shared<grid_map::GridMap>();
         node->get_parameter(name_ + "." + "map_topic", map_topic_);
         node->get_parameter(name_ + "." + "global_frame", global_frame_);
         node->get_parameter(name_ + "." + "map_time_decay", time_decay_);
         node->get_parameter(name_ + "." + "max_slope", max_slope);
+        node->get_parameter(name_ + "." + "robot_base_frame", robot_base_frame_);
+        node->get_parameter(name_ + "." + "use_robot_z", use_robot_z_);
+        node->get_parameter(name_ + "." + "robot_height_offset", robot_height_offset_);
         tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node->get_clock());
         tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(rclcpp_node_);
         tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -98,6 +104,7 @@ namespace nav2_msg_costmap_plugin
         {
             std::lock_guard<std::mutex> lck(map_lock_);
             grid_map_ = map_ptr;
+            last_timestamp = msg->header.stamp;
         }
     }
 
@@ -113,17 +120,13 @@ namespace nav2_msg_costmap_plugin
         max_x_tmp = robot_x + 3;
         min_y_tmp = robot_y - 3;
         max_y_tmp = robot_y + 3;
-
+        *min_x = min_x_tmp;
+        *min_y = min_y_tmp;
+        *max_x = max_x_tmp;
+        *max_y = max_y_tmp;
         if (abs(robot_x) < 1e3 && abs(robot_y) < 1e3)
         {
-            *min_x = min_x_tmp;
-            *min_y = min_y_tmp;
-            *max_x = max_x_tmp;
-            *max_y = max_y_tmp;
-        }
-        else
-        {
-            RCLCPP_ERROR(rclcpp::get_logger("nav2_costmap_2d"), "Illegal robot pos detected! X:%.f ,Y:%.f", robot_x, robot_y);
+            RCLCPP_WARN(rclcpp::get_logger("nav2_costmap_2d"), "Might illegal robot pos detected! X:%.f ,Y:%.f", robot_x, robot_y);
         }
     }
 
@@ -135,6 +138,21 @@ namespace nav2_msg_costmap_plugin
 
     void MsgLayer::updateCosts(nav2_costmap_2d::Costmap2D &master_grid, int min_i, int min_j, int max_i, int max_j)
     {
+        double robot_z = 0.0;
+        if (use_robot_z_)
+        {
+            geometry_msgs::msg::TransformStamped tf_global_to_base;
+            try
+            {
+                tf_global_to_base = tf_buffer_->lookupTransform(global_frame_, robot_base_frame_, last_timestamp, rclcpp::Duration::from_seconds(0.2));
+            }
+            catch (const tf2::TransformException &ex)
+            {
+                RCLCPP_ERROR(rclcpp::get_logger("nav2_costmap_2d"), "%s", ex.what());
+                return;
+            }
+            robot_z = tf_global_to_base.transform.translation.z;
+        }
         unsigned char *master_array = master_grid.getCharMap();
         unsigned int size_x = master_grid.getSizeInCellsX(), size_y = master_grid.getSizeInCellsY();
         min_i = std::max(0, min_i);
@@ -154,13 +172,22 @@ namespace nav2_msg_costmap_plugin
                     int index = master_grid.getIndex(i, j);
                     if (grid_map_->isInside(vec2d_map))
                     {
-                        double origin_cost = master_array[index];
+                        double elevation = grid_map_->atPosition("elevation", vec2d_map);
                         double slope = grid_map_->atPosition("slope", vec2d_map);
                         if (!std::isnan(slope))
                         {
                             double cost;
                             if (slope > max_slope)
-                                cost = 254;
+                            {
+                                if (use_robot_z_ && abs(elevation + robot_height_offset_ - robot_z) > 0.3)
+                                {
+                                    cost = 254;
+                                }
+                                else if (!use_robot_z_)
+                                    cost = 254;
+                                else
+                                    cost = 0;
+                            }
                             else
                                 cost = 0;
 
