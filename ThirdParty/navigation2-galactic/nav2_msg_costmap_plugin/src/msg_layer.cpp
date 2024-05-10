@@ -124,7 +124,7 @@ namespace nav2_msg_costmap_plugin
         *min_y = min_y_tmp;
         *max_x = max_x_tmp;
         *max_y = max_y_tmp;
-        if (abs(robot_x) < 1e3 && abs(robot_y) < 1e3)
+        if (!(abs(robot_x) < 1e3 && abs(robot_y) < 1e3))
         {
             RCLCPP_WARN(rclcpp::get_logger("nav2_costmap_2d"), "Might illegal robot pos detected! X:%.f ,Y:%.f", robot_x, robot_y);
         }
@@ -176,6 +176,7 @@ namespace nav2_msg_costmap_plugin
                         double slope = grid_map_->atPosition("slope", vec2d_map);
                         if (!std::isnan(slope))
                         {
+                            double origin_cost = master_array[index];
                             double cost;
                             if (slope > max_slope)
                             {
@@ -186,10 +187,10 @@ namespace nav2_msg_costmap_plugin
                                 else if (!use_robot_z_)
                                     cost = 254;
                                 else
-                                    cost = 0;
+                                    cost = origin_cost;
                             }
                             else
-                                cost = 0;
+                                cost = origin_cost;
 
                             master_array[index] = cost;
                         }
