@@ -43,7 +43,7 @@ map_builder_node:
 
     #----------------重定位和回环检测请勿同时启用----------------#
     loop_closure:
-      activate: True # 启用回环检测
+      activate: False # 启用回环检测
       rad_thresh: 0.2 # 角度阈值
       dist_thresh: 1.0 # 距离阈值
       time_thresh: 30.0 # 时间阈值
@@ -75,8 +75,8 @@ occupancy_grid_converter:
     grid_map_cloud_size: 10 # 障碍检测积分点云数量
     occupancyGriddataMin: 0.65
     occupancyGriddataMax: 20.0
-    point_min_height: -0.7 # 点云高度过滤
-    point_max_height: 1.0 # 点云高度过滤
+    point_min_height: -1.0 # 点云高度过滤
+    point_max_height: 0.7 # 点云高度过滤
     min_distance: 0.4 # 近点过滤
 
     filters_local:
