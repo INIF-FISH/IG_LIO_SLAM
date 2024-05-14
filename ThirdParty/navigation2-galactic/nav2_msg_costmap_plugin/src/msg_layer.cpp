@@ -180,7 +180,7 @@ namespace nav2_msg_costmap_plugin
                             double cost;
                             if (slope > max_slope)
                             {
-                                if (use_robot_z_ && abs(elevation + robot_height_offset_ - robot_z) > 0.3)
+                                if (use_robot_z_ && abs(elevation - robot_height_offset_ + robot_z) > 0.3)
                                 {
                                     cost = 254;
                                 }
